@@ -30,6 +30,9 @@ class MainMenuScreen(Screen):
         width: 100%;
         margin: 1 0;
     }
+    Button:focus {
+        text-style: bold reverse;
+    }
     """
 
     BINDINGS = [
@@ -39,6 +42,9 @@ class MainMenuScreen(Screen):
         ("r", "go_reports", "Reports"),
         ("s", "go_settings", "Settings"),
         ("q", "quit", "Quit"),
+        ("up", "focus_prev", "Up"),
+        ("down", "focus_next", "Down"),
+        ("enter", "activate", "Select"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -57,6 +63,45 @@ class MainMenuScreen(Screen):
             id="main-container",
         )
         yield Footer()
+
+    def on_mount(self) -> None:
+        try:
+            self.query_one("#btn_attack", Button).focus()
+        except Exception:
+            pass
+
+    def _get_buttons(self) -> list[Button]:
+        return [
+            w for w in self.query(".menu-btn")
+            if isinstance(w, Button)
+        ]
+
+    def action_focus_next(self) -> None:
+        btns = self._get_buttons()
+        if not btns:
+            return
+        for i, b in enumerate(btns):
+            if b.has_focus:
+                next_btn = btns[(i + 1) % len(btns)]
+                next_btn.focus()
+                return
+        btns[0].focus()
+
+    def action_focus_prev(self) -> None:
+        btns = self._get_buttons()
+        if not btns:
+            return
+        for i, b in enumerate(btns):
+            if b.has_focus:
+                prev_btn = btns[(i - 1) % len(btns)]
+                prev_btn.focus()
+                return
+        btns[-1].focus()
+
+    def action_activate(self) -> None:
+        focused = self.focused
+        if focused and isinstance(focused, Button):
+            focused.press()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id

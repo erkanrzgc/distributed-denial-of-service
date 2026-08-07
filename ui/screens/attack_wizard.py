@@ -1,12 +1,15 @@
 import asyncio
+from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Input, Label, Select, Static, Switch
 
 from utils.target_profiler import scan_target
 from utils.validators import validate_target
+
+LOG_DIR = Path("logs")
 
 
 class AttackWizardScreen(Screen):
@@ -40,16 +43,18 @@ class AttackWizardScreen(Screen):
         padding: 1;
         background: $surface;
     }
-    .suggest-btn {
-        width: 24;
-        margin: 0;
+    Button:focus, Input:focus, Select:focus {
+        text-style: bold reverse;
     }
     """
 
     BINDINGS = [
         ("escape", "back", "Back"),
-        ("ctrl+s", "start", "Start Attack"),
-        ("ctrl+n", "scan", "Scan Target"),
+        ("ctrl+s", "start", "Start"),
+        ("ctrl+n", "scan", "Scan"),
+        ("up", "focus_prev", "Up"),
+        ("down", "focus_next", "Down"),
+        ("tab", "focus_next", "Next"),
     ]
 
     def __init__(self, attack_module: str = "http_flood", **kwargs):
@@ -121,6 +126,38 @@ class AttackWizardScreen(Screen):
 
         yield Footer()
 
+    def on_mount(self) -> None:
+        try:
+            self.query_one("#target", Input).focus()
+        except Exception:
+            pass
+
+    def _get_focusables(self) -> list:
+        return [
+            w for w in self.query(".form-input, #btn_scan, #btn_start, #btn_back")
+            if hasattr(w, "focus")
+        ]
+
+    def action_focus_next(self) -> None:
+        widgets = self._get_focusables()
+        if not widgets:
+            return
+        for i, w in enumerate(widgets):
+            if w.has_focus:
+                widgets[(i + 1) % len(widgets)].focus()
+                return
+        widgets[0].focus()
+
+    def action_focus_prev(self) -> None:
+        widgets = self._get_focusables()
+        if not widgets:
+            return
+        for i, w in enumerate(widgets):
+            if w.has_focus:
+                widgets[(i - 1) % len(widgets)].focus()
+                return
+        widgets[-1].focus()
+
     def action_back(self) -> None:
         self.app.pop_screen()
 
@@ -179,7 +216,6 @@ class AttackWizardScreen(Screen):
     def _show_profile(self, p) -> None:
         lines = ["[bold green]Scan Results[/]"]
         lines.append(f"  IP: {p.ip or '?'}  |  Status: {p.status_code or '?'}  |  Time: {p.response_time*1000:.0f}ms")
-
         if p.server:
             lines.append(f"  Server: {p.server}  |  TLS: {p.tls_version or '?'}")
         if p.tech_stack:
@@ -192,19 +228,16 @@ class AttackWizardScreen(Screen):
             lines.append(f"  Open ports: {', '.join(str(x) for x in p.open_ports)}")
         if p.rate_limited:
             lines.append("  [red]Server is rate-limiting[/]")
-
         if p.suggested_attacks:
             lines.append("\n[bold yellow]Suggested (auto-selected):[/]")
             for s in p.suggested_attacks[:4]:
-                icon = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
+                color = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
                 cfg = s.get("config", {})
                 cfg_str = ", ".join(f"{k}={v}" for k, v in cfg.items())
-                lines.append(f"  {icon}{s['attack']}[/] — {s['reason']}")
+                lines.append(f"  {color}{s['attack']}[/] — {s['reason']}")
                 lines.append(f"    [dim]{cfg_str}[/]")
-
         if p.errors:
             lines.append(f"\n[dim]{'; '.join(p.errors[:2])}[/]")
-
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
     def _start_attack(self) -> None:
@@ -224,4 +257,10 @@ class AttackWizardScreen(Screen):
             "method": self.query_one("#method", Select).value,
             "spoof": self.query_one("#spoof", Switch).value,
         }
+        self._ensure_log_dir(host)
         self.app.action_show_attack_live(config)
+
+    @staticmethod
+    def _ensure_log_dir(host: str) -> None:
+        clean = host.replace("/", "_").replace("\\", "_").replace(":", "_")[:64]
+        (LOG_DIR / clean).mkdir(parents=True, exist_ok=True)
