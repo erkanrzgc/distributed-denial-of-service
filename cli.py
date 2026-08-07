@@ -217,6 +217,49 @@ def interfaces_cmd() -> None:
         click.echo(f"{iface.name:15s} {iface.ip:15s} {iface.mac:20s} [{status}]")
 
 
+@cli.command("recon")
+@click.option("--target", "-t", required=True, help="Target URL or host")
+@click.option("--no-ports", is_flag=True, help="Skip port scanning")
+def recon_cmd(target: str, no_ports: bool) -> None:
+    from utils.target_profiler import scan_target
+    profile = asyncio.run(scan_target(target, scan_ports=not no_ports))
+
+    click.echo(f"\n  Target Profile: {profile.url}")
+    click.echo(f"  {'═' * 40}")
+    click.echo(f"  Host:    {profile.host}")
+    click.echo(f"  IP:      {profile.ip or '?'}")
+    click.echo(f"  Port:    {profile.port} {'(HTTPS)' if profile.is_https else '(HTTP)'}")
+    click.echo(f"  Status:  {profile.status_code or 'unreachable'}")
+    click.echo(f"  Time:    {profile.response_time*1000:.0f}ms")
+    click.echo(f"  Server:  {profile.server or '?'}")
+
+    if profile.tech_stack:
+        click.echo(f"  Tech:    {', '.join(profile.tech_stack)}")
+    if profile.waf:
+        click.echo(f"  WAF:     {', '.join(profile.waf)}")
+    else:
+        click.echo(f"  WAF:     None")
+    if profile.tls_version:
+        click.echo(f"  TLS:     {profile.tls_version}")
+    if profile.open_ports:
+        click.echo(f"  Ports:   {', '.join(str(p) for p in profile.open_ports)}")
+    if profile.rate_limited:
+        click.echo(f"  Rate-limited: YES")
+
+    if profile.suggested_attacks:
+        click.echo(f"\n  Suggested Attacks:")
+        for s in profile.suggested_attacks:
+            icon = click.style("HIGH", fg="green") if s["priority"] == "high" else click.style("MED", fg="yellow")
+            click.echo(f"    [{icon}] {s['attack']} — {s['reason']}")
+            if "config" in s:
+                cfg = " ".join(f"--{k} {v}" for k, v in s["config"].items() if k not in ("spoof",))
+                click.echo(f"         cli.py attack {s['attack']} -t {profile.host} {cfg}")
+
+    if profile.errors:
+        click.echo(f"\n  Notes: {'; '.join(profile.errors[:5])}")
+    click.echo()
+
+
 def _parse_value(v: str):
     if v.lower() in ("true", "yes"):
         return True
