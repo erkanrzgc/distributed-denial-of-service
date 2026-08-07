@@ -1,0 +1,36 @@
+# DDoS Toolkit Default Configuration
+attack:
+  default_rate: 1000
+  default_concurrency: 100
+  default_duration: 30
+  spoof_enabled: false
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+
+defense:
+  proxy_listen: "0.0.0.0:8080"
+  proxy_backend: "http://localhost:3000"
+  rate_limit: 100
+  rate_window: 60
+  block_duration: 300
+  challenge_enabled: true
+  waf_enabled: true
+  data_guard_max_body: 10485760
+
+alert:
+  webhook_url: null
+  email: null
+  slack_webhook: null
+  threshold_rps: 5000
+  threshold_concurrent: 1000
+
+ui:
+  theme: "dark"
+  refresh_rate: 250
+  mouse_support: true
+  show_sparklines: true
+
+log_level: "INFO"
+log_format: "json"

@@ -1,0 +1,108 @@
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal, Vertical
+from textual.screen import Screen
+from textual.widgets import Button, Footer, Header, Input, Label, Select, Static, Switch
+
+
+class AttackWizardScreen(Screen):
+    CSS = """
+    AttackWizardScreen {
+        align: center middle;
+    }
+    #wizard-container {
+        width: 70;
+        height: auto;
+        border: solid $border;
+        background: $surface;
+        padding: 1 2;
+    }
+    .form-row {
+        height: 3;
+        margin: 1 0;
+    }
+    .form-label {
+        width: 20;
+        text-align: right;
+        padding: 0 1;
+    }
+    .form-input {
+        width: 40;
+    }
+    """
+
+    def __init__(self, attack_module: str = "http_flood", **kwargs):
+        super().__init__(**kwargs)
+        self.attack_module = attack_module
+
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+
+        attack_options = [
+            ("HTTP Flood", "http_flood"),
+            ("SYN Flood", "syn_flood"),
+            ("UDP Flood", "udp_flood"),
+            ("Slowloris", "slowloris"),
+            ("Slow Read", "slow_read"),
+            ("Layer 7", "layer7"),
+            ("ICMP Flood", "icmp_flood"),
+            ("Amplification", "amplification"),
+        ]
+
+        with Container(id="wizard-container"):
+            yield Static("[bold red]ATTACK CONFIGURATION[/]", id="wizard-title")
+            yield Static()
+
+            with Horizontal(classes="form-row"):
+                yield Label("Attack Type:", classes="form-label")
+                yield Select(attack_options, value=self.attack_module, id="attack_type", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Target:", classes="form-label")
+                yield Input(placeholder="https://example.com or 1.2.3.4:443", id="target", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Port:", classes="form-label")
+                yield Input(placeholder="443", value="443", id="port", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Rate (req/s):", classes="form-label")
+                yield Input(placeholder="1000", value="1000", id="rate", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Concurrency:", classes="form-label")
+                yield Input(placeholder="100", value="100", id="concurrent", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Duration (s):", classes="form-label")
+                yield Input(placeholder="0 = unlimited", value="0", id="duration", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("HTTP Method:", classes="form-label")
+                yield Select([("GET", "GET"), ("POST", "POST"), ("HEAD", "HEAD")], value="GET", id="method", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Spoof IP:", classes="form-label")
+                yield Switch(value=False, id="spoof", classes="form-input")
+
+            Static()
+            with Horizontal():
+                yield Button("START ATTACK", id="btn_start", variant="error")
+                yield Button("Back", id="btn_back", variant="default")
+
+        yield Footer()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn_back":
+            self.app.pop_screen()
+        elif event.button.id == "btn_start":
+            config = {
+                "attack_type": self.query_one("#attack_type", Select).value,
+                "target": self.query_one("#target", Input).value,
+                "port": int(self.query_one("#port", Input).value or "443"),
+                "rate": int(self.query_one("#rate", Input).value or "1000"),
+                "concurrent": int(self.query_one("#concurrent", Input).value or "100"),
+                "duration": int(self.query_one("#duration", Input).value or "0"),
+                "method": self.query_one("#method", Select).value,
+                "spoof": self.query_one("#spoof", Switch).value,
+            }
+            self.app.action_show_attack_live(config)

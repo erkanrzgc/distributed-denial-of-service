@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual env
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Config (local overrides)
+config/local.yaml
+
+# Reports (generated)
+reports/
+
+# MyPy
+.mypy_cache/
+
+# Logs
+*.log
+
+# Sensitive
+*.key
+*.pem
+.env
