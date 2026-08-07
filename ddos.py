@@ -253,7 +253,7 @@ def recon_cmd(target: str, no_ports: bool) -> None:
             click.echo(f"    [{icon}] {s['attack']} — {s['reason']}")
             if "config" in s:
                 cfg = " ".join(f"--{k} {v}" for k, v in s["config"].items() if k not in ("spoof",))
-                 click.echo(f"         ddos.py attack {s['attack']} -t {profile.host} {cfg}")
+                click.echo(f"         ddos.py attack {s['attack']} -t {profile.host} {cfg}")
 
     if profile.errors:
         click.echo(f"\n  Notes: {'; '.join(profile.errors[:5])}")
