@@ -221,6 +221,12 @@ def interfaces_cmd() -> None:
 @click.option("--target", "-t", required=True, help="Target URL or host")
 @click.option("--no-ports", is_flag=True, help="Skip port scanning")
 def recon_cmd(target: str, no_ports: bool) -> None:
+    from utils.validators import validate_target
+    valid, host, error = validate_target(target)
+    if not valid:
+        click.echo(f"\n  [error] {error}\n")
+        return
+
     from utils.target_profiler import scan_target
     profile = asyncio.run(scan_target(target, scan_ports=not no_ports))
 

@@ -46,14 +46,14 @@ class MainMenuScreen(Screen):
         yield Container(
             Static("[bold white on #1f6feb] DDOS TOOLKIT v1.0 [/]", id="title"),
             Static("[dim]Attack | Defense | Detect — All in one terminal[/]", id="subtitle"),
-            Button(" Attack", id="btn_attack", variant="error", classes="menu-btn"),
-            Button(" Defense", id="btn_defense", variant="success", classes="menu-btn"),
-            Button(" Detection", id="btn_detection", variant="primary", classes="menu-btn"),
+            Button(" Attack (A)", id="btn_attack", variant="error", classes="menu-btn"),
+            Button(" Defense (D)", id="btn_defense", variant="success", classes="menu-btn"),
+            Button(" Detection (T)", id="btn_detection", variant="primary", classes="menu-btn"),
             Static(),
-            Button(" Reports", id="btn_reports", classes="menu-btn"),
-            Button(" Settings", id="btn_settings", classes="menu-btn"),
+            Button(" Reports (R)", id="btn_reports", classes="menu-btn"),
+            Button(" Settings (S)", id="btn_settings", classes="menu-btn"),
             Static(),
-            Button(" Quit", id="btn_quit", variant="default", classes="menu-btn"),
+            Button(" Quit (Q)", id="btn_quit", variant="default", classes="menu-btn"),
             id="main-container",
         )
         yield Footer()

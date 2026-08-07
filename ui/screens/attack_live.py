@@ -99,9 +99,9 @@ class AttackLiveScreen(Screen):
                     yield Static("Starting attack...", id="st-log")
 
             with Horizontal(id="controls"):
-                yield Button("STOP", id="btn_stop", variant="error")
-                yield Button("PAUSE", id="btn_pause", variant="warning")
-                yield Button("Back", id="btn_back", variant="default")
+                yield Button(" STOP (S) ", id="btn_stop", variant="error")
+                yield Button(" PAUSE (P) ", id="btn_pause", variant="warning")
+                yield Button(" Back (Esc) ", id="btn_back", variant="default")
 
         yield Footer()
 

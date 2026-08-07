@@ -6,6 +6,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Input, Label, Select, Static, Switch
 
 from utils.target_profiler import scan_target
+from utils.validators import validate_target
 
 
 class AttackWizardScreen(Screen):
@@ -43,12 +44,13 @@ class AttackWizardScreen(Screen):
         width: 24;
         margin: 0;
     }
-    .suggest-bar {
-        height: 3;
-        margin: 0;
-        align: center top;
-    }
     """
+
+    BINDINGS = [
+        ("escape", "back", "Back"),
+        ("ctrl+s", "start", "Start Attack"),
+        ("ctrl+n", "scan", "Scan Target"),
+    ]
 
     def __init__(self, attack_module: str = "http_flood", **kwargs):
         super().__init__(**kwargs)
@@ -70,20 +72,20 @@ class AttackWizardScreen(Screen):
 
         with Container(id="wizard-container"):
             yield Static("[bold red]ATTACK WIZARD[/]", id="wizard-title")
-            yield Static("[dim]Step 1: Enter target & scan[/]")
 
+            yield Static()
+            yield Static("  1. Enter target & scan")
             with Horizontal(classes="form-row"):
                 yield Label("Target:", classes="form-label")
-                yield Input(placeholder="https://example.com or 1.2.3.4:443", id="target", classes="form-input")
+                yield Input(placeholder="example.com or https://...", id="target", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Button("Scan Target", id="btn_scan", variant="primary")
-                yield Static("[dim]Scans ports, tech stack, WAF, TLS[/]", id="scan-hint")
+                yield Label("", classes="form-label")
+                yield Button(" Scan Target (Ctrl+N) ", id="btn_scan", variant="primary")
 
             yield Static(id="scan-panel")
 
-            yield Static("[dim]Step 2: Configure & launch[/]")
-
+            yield Static("  2. Configure & launch")
             with Horizontal(classes="form-row"):
                 yield Label("Attack Type:", classes="form-label")
                 yield Select(attack_options, value="http_flood", id="attack_type", classes="form-input")
@@ -93,7 +95,7 @@ class AttackWizardScreen(Screen):
                 yield Input(placeholder="443", value="443", id="port", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Rate (req/s):", classes="form-label")
+                yield Label("Rate:", classes="form-label")
                 yield Input(placeholder="1000", value="1000", id="rate", classes="form-input")
 
             with Horizontal(classes="form-row"):
@@ -101,11 +103,11 @@ class AttackWizardScreen(Screen):
                 yield Input(placeholder="100", value="100", id="concurrent", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Duration (s):", classes="form-label")
+                yield Label("Duration:", classes="form-label")
                 yield Input(placeholder="0 = unlimited", value="0", id="duration", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("HTTP Method:", classes="form-label")
+                yield Label("Method:", classes="form-label")
                 yield Select([("GET", "GET"), ("POST", "POST"), ("HEAD", "HEAD")], value="GET", id="method", classes="form-input")
 
             with Horizontal(classes="form-row"):
@@ -114,10 +116,19 @@ class AttackWizardScreen(Screen):
 
             Static()
             with Horizontal():
-                yield Button("START ATTACK", id="btn_start", variant="error")
-                yield Button("Back", id="btn_back", variant="default")
+                yield Button(" START ATTACK (Ctrl+S) ", id="btn_start", variant="error")
+                yield Button(" Back (Esc) ", id="btn_back", variant="default")
 
         yield Footer()
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
+    def action_start(self) -> None:
+        self._start_attack()
+
+    def action_scan(self) -> None:
+        self._run_scan()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         btn_id = event.button.id
@@ -127,17 +138,19 @@ class AttackWizardScreen(Screen):
             self._start_attack()
         elif btn_id == "btn_scan":
             self._run_scan()
-        elif btn_id.startswith("suggest_"):
-            attack_name = btn_id.replace("suggest_", "")
-            self.query_one("#attack_type", Select).value = attack_name
 
     def _run_scan(self) -> None:
-        target = self.query_one("#target", Input).value
+        target = self.query_one("#target", Input).value.strip()
         if not target:
-            self.query_one("#scan-panel", Static).update("[yellow]Enter a target first[/]")
+            self.query_one("#scan-panel", Static).update("[red]Enter a target first[/]")
             return
 
-        self.query_one("#scan-panel", Static).update("[dim]Scanning...[/]")
+        valid, host, error = validate_target(target)
+        if not valid:
+            self.query_one("#scan-panel", Static).update(f"[red]Invalid target: {error}[/]")
+            return
+
+        self.query_one("#scan-panel", Static).update(f"[dim]Scanning {host}...[/]")
         asyncio.create_task(self._do_scan(target))
 
     async def _do_scan(self, target: str) -> None:
@@ -148,7 +161,6 @@ class AttackWizardScreen(Screen):
 
             if profile.port:
                 self.query_one("#port", Input).value = str(profile.port)
-
             if profile.suggested_attacks:
                 sug = profile.suggested_attacks[0]
                 self.query_one("#attack_type", Select).value = sug["attack"]
@@ -161,9 +173,8 @@ class AttackWizardScreen(Screen):
                         self.query_one("#concurrent", Input).value = str(v)
                     elif k == "method":
                         self.query_one("#method", Select).value = v
-
         except Exception as e:
-            self.query_one("#scan-panel", Static).update(f"[red]Scan failed: {e}[/]")
+            self.query_one("#scan-panel", Static).update(f"[red]Scan error: {e}[/]")
 
     def _show_profile(self, p) -> None:
         lines = ["[bold green]Scan Results[/]"]
@@ -180,16 +191,16 @@ class AttackWizardScreen(Screen):
         if p.open_ports:
             lines.append(f"  Open ports: {', '.join(str(x) for x in p.open_ports)}")
         if p.rate_limited:
-            lines.append("  [red]Server is rate-limiting![/]")
+            lines.append("  [red]Server is rate-limiting[/]")
 
         if p.suggested_attacks:
-            lines.append("\n[bold yellow]Suggested Attacks (click to select):[/]")
+            lines.append("\n[bold yellow]Suggested (auto-selected):[/]")
             for s in p.suggested_attacks[:4]:
                 icon = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
                 cfg = s.get("config", {})
                 cfg_str = ", ".join(f"{k}={v}" for k, v in cfg.items())
-                lines.append(f"  {icon}▶ {s['attack']}[/] — {s['reason']}")
-                lines.append(f"    [dim]config: {cfg_str}[/]")
+                lines.append(f"  {icon}{s['attack']}[/] — {s['reason']}")
+                lines.append(f"    [dim]{cfg_str}[/]")
 
         if p.errors:
             lines.append(f"\n[dim]{'; '.join(p.errors[:2])}[/]")
@@ -197,9 +208,15 @@ class AttackWizardScreen(Screen):
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
     def _start_attack(self) -> None:
+        raw_target = self.query_one("#target", Input).value.strip()
+        valid, host, error = validate_target(raw_target)
+        if not valid:
+            self.query_one("#scan-panel", Static).update(f"[red]Cannot start: {error}[/]")
+            return
+
         config = {
             "attack_type": self.query_one("#attack_type", Select).value,
-            "target": self.query_one("#target", Input).value,
+            "target": raw_target,
             "port": int(self.query_one("#port", Input).value or "443"),
             "rate": int(self.query_one("#rate", Input).value or "1000"),
             "concurrent": int(self.query_one("#concurrent", Input).value or "100"),
