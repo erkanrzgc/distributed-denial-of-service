@@ -2,7 +2,7 @@ import asyncio
 import time
 
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal
+from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, Static
@@ -24,33 +24,45 @@ class AttackLiveScreen(Screen):
         padding: 1 2;
     }
     #status-bar {
-        height: 3;
+        height: 1;
         dock: top;
         background: #1a0000;
         padding: 0 1;
     }
-    .stat-box {
+    #main-area {
+        height: 1fr;
+    }
+    #stats-panel {
+        width: 50;
+        border: solid $border;
+        padding: 1;
+        margin: 1 0;
+    }
+    #log-panel {
         width: 1fr;
         border: solid $border;
         padding: 1;
-        margin: 1;
-        text-align: center;
-    }
-    .stat-value {
-        text-style: bold;
-        color: $text;
-    }
-    .stat-label {
-        text-style: dim;
-        color: $text-muted;
-    }
-    #log-box {
-        height: 10;
-        border: solid $border;
-        margin: 1;
-        padding: 0 1;
+        margin: 1 0;
         overflow-y: auto;
     }
+    #controls {
+        dock: bottom;
+        height: 3;
+        padding: 0 1;
+    }
+    .stat-row {
+        height: 1;
+        margin: 0;
+    }
+    .stat-label {
+        width: 16;
+    }
+    .stat-bar {
+        width: 30;
+    }
+    .low { color: #3fb950; }
+    .mid { color: #d29922; }
+    .high { color: #f85149; }
     """
 
     BINDINGS = [
@@ -59,17 +71,10 @@ class AttackLiveScreen(Screen):
         ("escape", "back", "Back"),
     ]
 
-    stats_packets = reactive("0")
-    stats_rate = reactive("0/s")
-    stats_success = reactive("0%")
-    stats_bandwidth = reactive("0 Mbps")
-    stats_errors = reactive("0")
-    stats_duration = reactive("0s")
-
     def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         self.config = config
-        self._update_timer = None
+        self._stat_timer = None
         self._log_lines = []
 
     def compose(self) -> ComposeResult:
@@ -78,32 +83,22 @@ class AttackLiveScreen(Screen):
         with Container(id="live-container"):
             with Horizontal(id="status-bar"):
                 yield Label(f"ATTACK: {self.config.get('attack_type', '?')} → {self.config.get('target', '?')}", id="status-title")
-                yield Static(id="status-indicator")
 
-            with Horizontal():
-                with Container(classes="stat-box"):
-                    yield Label("Packets", classes="stat-label")
-                    yield Static(self.stats_packets, id="val-packets", classes="stat-value")
-                with Container(classes="stat-box"):
-                    yield Label("Rate", classes="stat-label")
-                    yield Static(self.stats_rate, id="val-rate", classes="stat-value")
-                with Container(classes="stat-box"):
-                    yield Label("Success", classes="stat-label")
-                    yield Static(self.stats_success, id="val-success", classes="stat-value")
-                with Container(classes="stat-box"):
-                    yield Label("Bandwidth", classes="stat-label")
-                    yield Static(self.stats_bandwidth, id="val-bw", classes="stat-value")
-                with Container(classes="stat-box"):
-                    yield Label("Errors", classes="stat-label")
-                    yield Static(self.stats_errors, id="val-errors", classes="stat-value")
-                with Container(classes="stat-box"):
-                    yield Label("Duration", classes="stat-label")
-                    yield Static(self.stats_duration, id="val-duration", classes="stat-value")
+            with Horizontal(id="main-area"):
+                with Vertical(id="stats-panel"):
+                    yield Static("[bold]STATS[/]")
+                    yield Static("[dim]Packets Sent:[/]  0", id="st-packets")
+                    yield Static("[dim]Rate:[/]  0/s", id="st-rate")
+                    yield Static("[dim]Success:[/]  0%", id="st-success")
+                    yield Static("[dim]Bandwidth:[/]  0.00 Mbps", id="st-bw")
+                    yield Static("[dim]Errors:[/]  0", id="st-errors")
+                    yield Static("[dim]Duration:[/]  0s", id="st-duration")
 
-            yield Static("Activity Log:", id="log-header")
-            yield Static("Starting attack...", id="log-box")
+                with Vertical(id="log-panel"):
+                    yield Static("[bold]LOG[/]")
+                    yield Static("Starting attack...", id="st-log")
 
-            with Horizontal():
+            with Horizontal(id="controls"):
                 yield Button("STOP", id="btn_stop", variant="error")
                 yield Button("PAUSE", id="btn_pause", variant="warning")
                 yield Button("Back", id="btn_back", variant="default")
@@ -111,17 +106,17 @@ class AttackLiveScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self._update_timer = self.set_interval(0.25, self._update_stats)
+        self._stat_timer = self.set_interval(0.25, self._update_stats)
         self._start_attack()
 
     def on_unmount(self) -> None:
-        if self._update_timer:
-            self._update_timer.stop()
+        if self._stat_timer:
+            self._stat_timer.stop()
 
     def _start_attack(self) -> None:
         module_cls = registry.get_module(self.config["attack_type"], "attack")
         if not module_cls:
-            self.query_one("#log-box", Static).update(f"Unknown attack: {self.config['attack_type']}")
+            self.query_one("#st-log", Static).update(f"Unknown attack: {self.config['attack_type']}")
             return
 
         target = self.config.get("target", "localhost")
@@ -145,13 +140,16 @@ class AttackLiveScreen(Screen):
 
         self._task = asyncio.create_task(run_attack())
 
-    def _add_log(self, msg: str) -> None:
+    def _add_log(self, msg: str, style: str = "") -> None:
         timestamp = time.strftime("%H:%M:%S")
-        self._log_lines.append(f"[dim]{timestamp}[/] {msg}")
-        if len(self._log_lines) > 50:
-            self._log_lines = self._log_lines[-50:]
+        if style:
+            self._log_lines.append(f"[dim]{timestamp}[/] [{style}]{msg}[/]")
+        else:
+            self._log_lines.append(f"[dim]{timestamp}[/] {msg}")
+        if len(self._log_lines) > 100:
+            self._log_lines = self._log_lines[-100:]
         try:
-            self.query_one("#log-box", Static).update("\n".join(self._log_lines[-8:]))
+            self.query_one("#st-log", Static).update("\n".join(self._log_lines[-12:]))
         except Exception:
             pass
 
@@ -161,38 +159,37 @@ class AttackLiveScreen(Screen):
             return
 
         stats = session.stats
-        self.stats_packets = f"{stats.packets_sent:,}"
         elapsed = time.monotonic() - stats.start_time if stats.start_time else 1
         rate = int(stats.packets_sent / elapsed) if elapsed > 0 else 0
-        self.stats_rate = f"{rate:,}/s"
-        self.stats_success = f"{stats.success_rate:.1f}%"
-        self.stats_bandwidth = f"{stats.bandwidth_mbps:.2f} Mbps"
-        self.stats_errors = str(stats.errors)
-        self.stats_duration = f"{session.duration:.1f}s"
+        success = stats.success_rate
+
+        s_class = "low" if success >= 90 else ("mid" if success >= 50 else "high")
+        r_class = ""
+        e_class = "" if stats.errors < 50 else "high"
 
         try:
-            self.query_one("#val-packets", Static).update(self.stats_packets)
-            self.query_one("#val-rate", Static).update(self.stats_rate)
-            self.query_one("#val-success", Static).update(self.stats_success)
-            self.query_one("#val-bw", Static).update(self.stats_bandwidth)
-            self.query_one("#val-errors", Static).update(self.stats_errors)
-            self.query_one("#val-duration", Static).update(self.stats_duration)
+            self.query_one("#st-packets", Static).update(f"[dim]Packets Sent:[/]  {stats.packets_sent:,}")
+            self.query_one("#st-rate", Static).update(f"[dim]Rate:[/]  {rate:,}/s")
+            self.query_one("#st-success", Static).update(f"[dim]Success:[/]  [{s_class}]{success:.1f}%[/]")
+            self.query_one("#st-bw", Static).update(f"[dim]Bandwidth:[/]  {stats.bandwidth_mbps:.2f} Mbps")
+            self.query_one("#st-errors", Static).update(f"[dim]Errors:[/]  [{e_class}]{stats.errors}[/]")
+            self.query_one("#st-duration", Static).update(f"[dim]Duration:[/]  {session.duration:.1f}s")
         except Exception:
             pass
 
         if session.status == SessionStatus.COMPLETED:
-            self._add_log("[green]Attack completed[/]")
+            self._add_log("Attack completed", style="green")
         elif session.status == SessionStatus.FAILED:
-            self._add_log(f"[red]Attack failed: {session.error_message}[/]")
+            self._add_log(f"Attack failed: {session.error_message}", style="red")
 
         if stats.packets_sent % 100 == 0 and stats.packets_sent > 0:
-            self._add_log(f"Packets: {stats.packets_sent:,} | Rate: {rate:,}/s | Err: {stats.errors}")
+            self._add_log(f"Sent: {stats.packets_sent:,} | Rate: {rate:,}/s | Err: {stats.errors} | {success:.0f}%")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_stop":
             self._stop_attack()
         elif event.button.id == "btn_pause":
-            self._toggle_pause(event)
+            self._toggle_pause()
         elif event.button.id == "btn_back":
             self._stop_attack()
             self.app.pop_screen()
@@ -202,7 +199,7 @@ class AttackLiveScreen(Screen):
         self.app.pop_screen()
 
     def action_pause(self) -> None:
-        self._toggle_pause(None)
+        self._toggle_pause()
 
     def _stop_attack(self) -> None:
         if hasattr(self, "_session"):
@@ -210,15 +207,16 @@ class AttackLiveScreen(Screen):
         if hasattr(self, "_task") and self._task and not self._task.done():
             self._task.cancel()
 
-    def _toggle_pause(self, event) -> None:
+    def _toggle_pause(self) -> None:
         session = getattr(self, "_session", None)
         if not session:
             return
+        btn = self.query_one("#btn_pause", Button)
         if session.status == SessionStatus.RUNNING:
             session.pause()
-            btn = self.query_one("#btn_pause", Button)
             btn.label = "RESUME"
+            self._add_log("PAUSED", style="yellow")
         elif session.status == SessionStatus.PAUSED:
             session.resume()
-            btn = self.query_one("#btn_pause", Button)
             btn.label = "PAUSE"
+            self._add_log("RESUMED", style="green")

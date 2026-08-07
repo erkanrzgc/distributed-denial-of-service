@@ -4,12 +4,12 @@ setup(
     name="ddos-toolkit",
     version="1.0.0",
     packages=find_packages(),
-    py_modules=["cli"],
+    py_modules=["ddos"],
     include_package_data=True,
     python_requires=">=3.11",
     entry_points={
         "console_scripts": [
-            "ddos=cli:cli",
+            "ddos=ddos:cli",
         ],
     },
     install_requires=[

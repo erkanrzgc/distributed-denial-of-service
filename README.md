@@ -23,16 +23,16 @@ python3 main.py
 
 ```bash
 # Attack — 2 second HTTP flood at 1000 req/s
-python3 cli.py --no-tui attack http-flood --target http://test.local --rate 1000 --duration 2
+python3 ddos.py --no-tui attack http-flood --target http://test.local --rate 1000 --duration 2
 
 # Defense — reverse proxy with built-in WAF
-python3 cli.py --no-tui defend proxy --listen :8080 --backend http://app:3000
+python3 ddos.py --no-tui defend proxy --listen :8080 --backend http://app:3000
 
 # Detection — live traffic monitor
-python3 cli.py --no-tui detect monitor --interface eth0
+python3 ddos.py --no-tui detect monitor --interface eth0
 
-# Show available network interfaces
-python3 cli.py --no-tui interfaces
+# Recon — scan target, detect tech & suggest attacks
+python3 ddos.py recon --target example.com
 ```
 
 ## Features
@@ -98,35 +98,35 @@ python3 cli.py --no-tui interfaces
 ## CLI Commands
 
 ```bash
-$ python3 cli.py attack --help
+$ python3 ddos.py attack --help
 
 Commands: http-flood, syn-flood, udp-flood, slowloris, slow-read,
           layer7, icmp-flood, amplification
 
-$ python3 cli.py defend --help
+$ python3 ddos.py defend --help
 
 Commands: proxy, rate-limit, data-guard
 
-$ python3 cli.py detect --help
+$ python3 ddos.py detect --help
 
 Commands: monitor, anomaly, entropy
 
-$ python3 cli.py config --help    # read/write config
-$ python3 cli.py report --help    # session reports (json/html/terminal)
-$ python3 cli.py interfaces       # list network interfaces
+$ python3 ddos.py config --help    # read/write config
+$ python3 ddos.py report --help    # session reports (json/html/terminal)
+$ python3 ddos.py recon --help     # target scanning & profiling
 ```
 
 ## Configuration
 
 ```bash
 # View current config
-python3 cli.py config
+python3 ddos.py config
 
 # Change default attack rate
-python3 cli.py config --set attack.default_rate=5000
+python3 ddos.py config --set attack.default_rate=5000
 
 # Set Slack alert webhook
-python3 cli.py config --set alert.slack_webhook=https://hooks.slack.com/...
+python3 ddos.py config --set alert.slack_webhook=https://hooks.slack.com/...
 ```
 
 Or edit `~/.config/ddos-toolkit/config.yaml` directly.
@@ -159,14 +159,6 @@ This tool is for **educational and authorized testing only**. Unauthorized use a
 ## Security
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md).
-
-## Contributors
-
-<!-- ALL-CONTRIBUTORS-LIST:START -->
-| [<img src="https://github.com/erkanrzgc.png" width="100px;" alt="erkanrzgc"/><br/><sub><b>erkanrzgc</b></sub>](https://github.com/erkanrzgc) |
-|:---:|
-| 💻 📖 🔧 |
-<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## License
 

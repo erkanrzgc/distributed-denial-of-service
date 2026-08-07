@@ -14,7 +14,7 @@ class AttackWizardScreen(Screen):
         align: center middle;
     }
     #wizard-container {
-        width: 76;
+        width: 78;
         height: auto;
         border: solid $border;
         background: $surface;
@@ -25,29 +25,33 @@ class AttackWizardScreen(Screen):
         margin: 1 0;
     }
     .form-label {
-        width: 18;
+        width: 15;
         text-align: right;
         padding: 0 1;
     }
     .form-input {
-        width: 42;
+        width: 45;
     }
-    #scan-result {
+    #scan-panel {
         height: auto;
-        border: solid $border;
+        border: solid green;
         margin: 1 0;
         padding: 1;
         background: $surface;
     }
     .suggest-btn {
-        width: 100%;
+        width: 24;
         margin: 0;
+    }
+    .suggest-bar {
+        height: 3;
+        margin: 0;
+        align: center top;
     }
     """
 
     def __init__(self, attack_module: str = "http_flood", **kwargs):
         super().__init__(**kwargs)
-        self.attack_module = attack_module
         self._profile = None
 
     def compose(self) -> ComposeResult:
@@ -65,15 +69,24 @@ class AttackWizardScreen(Screen):
         ]
 
         with Container(id="wizard-container"):
-            yield Static("[bold red]ATTACK CONFIGURATION[/]", id="wizard-title")
-
-            with Horizontal(classes="form-row"):
-                yield Label("Attack Type:", classes="form-label")
-                yield Select(attack_options, value=self.attack_module, id="attack_type", classes="form-input")
+            yield Static("[bold red]ATTACK WIZARD[/]", id="wizard-title")
+            yield Static("[dim]Step 1: Enter target & scan[/]")
 
             with Horizontal(classes="form-row"):
                 yield Label("Target:", classes="form-label")
                 yield Input(placeholder="https://example.com or 1.2.3.4:443", id="target", classes="form-input")
+
+            with Horizontal(classes="form-row"):
+                yield Button("Scan Target", id="btn_scan", variant="primary")
+                yield Static("[dim]Scans ports, tech stack, WAF, TLS[/]", id="scan-hint")
+
+            yield Static(id="scan-panel")
+
+            yield Static("[dim]Step 2: Configure & launch[/]")
+
+            with Horizontal(classes="form-row"):
+                yield Label("Attack Type:", classes="form-label")
+                yield Select(attack_options, value="http_flood", id="attack_type", classes="form-input")
 
             with Horizontal(classes="form-row"):
                 yield Label("Port:", classes="form-label")
@@ -99,10 +112,6 @@ class AttackWizardScreen(Screen):
                 yield Label("Spoof IP:", classes="form-label")
                 yield Switch(value=False, id="spoof", classes="form-input")
 
-            yield Button("Scan Target", id="btn_scan", variant="primary")
-
-            yield Static(id="scan-result")
-
             Static()
             with Horizontal():
                 yield Button("START ATTACK", id="btn_start", variant="error")
@@ -111,12 +120,81 @@ class AttackWizardScreen(Screen):
         yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn_back":
+        btn_id = event.button.id
+        if btn_id == "btn_back":
             self.app.pop_screen()
-        elif event.button.id == "btn_start":
+        elif btn_id == "btn_start":
             self._start_attack()
-        elif event.button.id == "btn_scan":
+        elif btn_id == "btn_scan":
             self._run_scan()
+        elif btn_id.startswith("suggest_"):
+            attack_name = btn_id.replace("suggest_", "")
+            self.query_one("#attack_type", Select).value = attack_name
+
+    def _run_scan(self) -> None:
+        target = self.query_one("#target", Input).value
+        if not target:
+            self.query_one("#scan-panel", Static).update("[yellow]Enter a target first[/]")
+            return
+
+        self.query_one("#scan-panel", Static).update("[dim]Scanning...[/]")
+        asyncio.create_task(self._do_scan(target))
+
+    async def _do_scan(self, target: str) -> None:
+        try:
+            profile = await scan_target(target, scan_ports=True)
+            self._profile = profile
+            self._show_profile(profile)
+
+            if profile.port:
+                self.query_one("#port", Input).value = str(profile.port)
+
+            if profile.suggested_attacks:
+                sug = profile.suggested_attacks[0]
+                self.query_one("#attack_type", Select).value = sug["attack"]
+                for k, v in sug.get("config", {}).items():
+                    if k == "port":
+                        self.query_one("#port", Input).value = str(v)
+                    elif k == "rate":
+                        self.query_one("#rate", Input).value = str(v)
+                    elif k == "concurrent":
+                        self.query_one("#concurrent", Input).value = str(v)
+                    elif k == "method":
+                        self.query_one("#method", Select).value = v
+
+        except Exception as e:
+            self.query_one("#scan-panel", Static).update(f"[red]Scan failed: {e}[/]")
+
+    def _show_profile(self, p) -> None:
+        lines = ["[bold green]Scan Results[/]"]
+        lines.append(f"  IP: {p.ip or '?'}  |  Status: {p.status_code or '?'}  |  Time: {p.response_time*1000:.0f}ms")
+
+        if p.server:
+            lines.append(f"  Server: {p.server}  |  TLS: {p.tls_version or '?'}")
+        if p.tech_stack:
+            lines.append(f"  Tech: {', '.join(p.tech_stack)}")
+        if p.waf:
+            lines.append(f"  [yellow]WAF: {', '.join(p.waf)}[/]")
+        else:
+            lines.append("  [green]WAF: None[/]")
+        if p.open_ports:
+            lines.append(f"  Open ports: {', '.join(str(x) for x in p.open_ports)}")
+        if p.rate_limited:
+            lines.append("  [red]Server is rate-limiting![/]")
+
+        if p.suggested_attacks:
+            lines.append("\n[bold yellow]Suggested Attacks (click to select):[/]")
+            for s in p.suggested_attacks[:4]:
+                icon = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
+                cfg = s.get("config", {})
+                cfg_str = ", ".join(f"{k}={v}" for k, v in cfg.items())
+                lines.append(f"  {icon}▶ {s['attack']}[/] — {s['reason']}")
+                lines.append(f"    [dim]config: {cfg_str}[/]")
+
+        if p.errors:
+            lines.append(f"\n[dim]{'; '.join(p.errors[:2])}[/]")
+
+        self.query_one("#scan-panel", Static).update("\n".join(lines))
 
     def _start_attack(self) -> None:
         config = {
@@ -130,56 +208,3 @@ class AttackWizardScreen(Screen):
             "spoof": self.query_one("#spoof", Switch).value,
         }
         self.app.action_show_attack_live(config)
-
-    def _run_scan(self) -> None:
-        target = self.query_one("#target", Input).value
-        if not target:
-            self.query_one("#scan-result", Static).update("[yellow]Enter a target first[/]")
-            return
-
-        self.query_one("#scan-result", Static).update("[dim]Scanning...[/]")
-        asyncio.create_task(self._do_scan(target))
-
-    async def _do_scan(self, target: str) -> None:
-        try:
-            profile = await scan_target(target, scan_ports=True)
-            self._profile = profile
-            self._show_profile(profile)
-
-            if profile.port:
-                self.query_one("#port", Input).value = str(profile.port)
-            if profile.is_https:
-                self.query_one("#port", Input).value = str(profile.port or 443)
-        except Exception as e:
-            self.query_one("#scan-result", Static).update(f"[red]Scan failed: {e}[/]")
-
-    def _show_profile(self, p) -> None:
-        lines = ["[bold]Target Profile[/]"]
-        lines.append(f"  IP: {p.ip or '?'}  |  Status: {p.status_code or '?'}  |  Time: {p.response_time*1000:.0f}ms")
-
-        if p.server:
-            lines.append(f"  Server: {p.server}")
-        if p.tech_stack:
-            lines.append(f"  Tech: {', '.join(p.tech_stack)}")
-        if p.waf:
-            lines.append(f"  [yellow]WAF: {', '.join(p.waf)}[/]")
-        else:
-            lines.append("  WAF: None")
-        if p.tls_version:
-            lines.append(f"  TLS: {p.tls_version}")
-        if p.open_ports:
-            lines.append(f"  Open ports: {', '.join(str(x) for x in p.open_ports)}")
-        if p.rate_limited:
-            lines.append("  [red]Rate-limited![/]")
-
-        if p.suggested_attacks:
-            lines.append("")
-            lines.append("[bold green]Suggested Attacks:[/]")
-            for s in p.suggested_attacks[:4]:
-                icon = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
-                lines.append(f"  {icon}{s['attack']}[/] — {s['reason']}")
-
-        if p.errors:
-            lines.append(f"\n[dim]{'; '.join(p.errors[:3])}[/]")
-
-        self.query_one("#scan-result", Static).update("\n".join(lines))

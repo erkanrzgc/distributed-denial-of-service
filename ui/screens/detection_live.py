@@ -54,7 +54,7 @@ class DetectionLiveScreen(Screen):
     def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         self.config = config
-        self._update_timer = None
+        self.    _stat_timer = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -93,12 +93,12 @@ class DetectionLiveScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self._update_timer = self.set_interval(0.5, self._update_stats)
+        self.    _stat_timer = self.set_interval(0.5, self._update_stats)
         self._start_detection()
 
     def on_unmount(self) -> None:
-        if self._update_timer:
-            self._update_timer.stop()
+        if self.    _stat_timer:
+            self.    _stat_timer.stop()
 
     def _start_detection(self) -> None:
         module_cls = registry.get_module(self.config["detect_type"], "detection")
