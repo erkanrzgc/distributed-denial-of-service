@@ -4,7 +4,7 @@
 [![Tests](https://img.shields.io/badge/tests-40%2F40-brightgreen)](tests/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![TUI](https://img.shields.io/badge/TUI-Textual-purple?logo=textual)](https://textual.textualize.io/)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20osx-lightgrey)]()
+[![Platform](https://img.shields.io/badge/platform-linux-lightgrey)]()
 
 **DDoS toolkit for red team operations, stress testing, and defensive security research.**
 
@@ -159,7 +159,7 @@ Or edit `~/.config/ddos-toolkit/config.yaml` directly.
 | Component | Minimum |
 |-----------|---------|
 | Python | 3.11+ |
-| OS | Linux, macOS |
+| OS | Linux |
 | Root | Required only for SYN flood and firewall (optional) |
 | Dependencies | textual, rich, click, aiohttp, scapy, pydantic, structlog |
 
