@@ -1,4 +1,4 @@
-# DDoS Toolkit
+# distributed-denial-of-service
 
 [![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-40%2F40-brightgreen)](tests/)
