@@ -183,7 +183,10 @@ class AttackLiveScreen(Screen):
         stats = session.stats
         elapsed = time.monotonic() - stats.start_time if stats.start_time else 1
         rate = int(stats.packets_sent / elapsed) if elapsed > 0 else 0
-        success = stats.success_rate
+        sent = stats.packets_sent
+        errs = stats.errors
+        success = ((sent - errs) / sent * 100) if sent > 0 else 0.0
+        bw = (stats.bytes_sent * 8) / elapsed / 1_000_000 if elapsed > 0 else 0.0
 
         s_class = "low" if success >= 90 else ("mid" if success >= 50 else "high")
         r_class = ""
@@ -193,7 +196,7 @@ class AttackLiveScreen(Screen):
             self.query_one("#st-packets", Static).update(f"[dim]Packets Sent:[/]  {stats.packets_sent:,}")
             self.query_one("#st-rate", Static).update(f"[dim]Rate:[/]  {rate:,}/s")
             self.query_one("#st-success", Static).update(f"[dim]Success:[/]  [{s_class}]{success:.1f}%[/]")
-            self.query_one("#st-bw", Static).update(f"[dim]Bandwidth:[/]  {stats.bandwidth_mbps:.2f} Mbps")
+            self.query_one("#st-bw", Static).update(f"[dim]Bandwidth:[/]  {bw:.2f} Mbps")
             self.query_one("#st-errors", Static).update(f"[dim]Errors:[/]  [{e_class}]{stats.errors}[/]")
             self.query_one("#st-duration", Static).update(f"[dim]Duration:[/]  {session.duration:.1f}s")
 
