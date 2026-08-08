@@ -214,13 +214,13 @@ def _generate_suggestions(profile: TargetProfile) -> None:
     if 80 in profile.open_ports or profile.port == 80:
         suggestions.append({
             "attack": "slowloris",
-            "reason": "HTTP port open — connection exhaustion may be effective",
+            "reason": "HTTP open — Slowloris eats connections",
             "priority": "high",
             "config": {"port": 80, "connections": 200},
         })
         suggestions.append({
             "attack": "http_flood",
-            "reason": "HTTP server detected — Layer 7 flood may overwhelm application",
+            "reason": "HTTP server — flood it",
             "priority": "high",
             "config": {"port": 80, "rate": 1000, "method": "GET"},
         })
@@ -228,13 +228,13 @@ def _generate_suggestions(profile: TargetProfile) -> None:
     if 443 in profile.open_ports or profile.is_https:
         suggestions.append({
             "attack": "http_flood",
-            "reason": "HTTPS detected — high-rate HTTP flood with concurrent connections",
+            "reason": "HTTPS open — high-rate flood",
             "priority": "high",
             "config": {"port": 443, "rate": 500, "method": "GET"},
         })
         suggestions.append({
             "attack": "slow_read",
-            "reason": "HTTPS slow read may drain server thread pool",
+            "reason": "HTTPS — slow read drains threads",
             "priority": "medium",
             "config": {"port": 443, "connections": 100, "read_delay": 5.0},
         })
@@ -242,7 +242,7 @@ def _generate_suggestions(profile: TargetProfile) -> None:
     if profile.status_code == 200:
         suggestions.append({
             "attack": "layer7",
-            "reason": "App responds normally — application-layer attack may bypass network filters",
+            "reason": "App alive — layer7 bypass",
             "priority": "medium",
             "config": {"rate": 50, "concurrent": 100},
         })
@@ -250,20 +250,20 @@ def _generate_suggestions(profile: TargetProfile) -> None:
     if not profile.waf:
         suggestions.append({
             "attack": "syn_flood",
-            "reason": "No WAF detected — raw SYN flood may saturate network stack",
+            "reason": "no WAF — SYN flood the stack",
             "priority": "high",
             "config": {"port": profile.port, "rate": 10000, "spoof": True},
         })
         suggestions.append({
             "attack": "udp_flood",
-            "reason": "No WAF — UDP flood may consume bandwidth directly",
+            "reason": "no WAF — UDP eats bandwidth",
             "priority": "medium",
             "config": {"port": 53, "rate": 5000, "packet_size": 512},
         })
     else:
         suggestions.append({
             "attack": "http_flood",
-            "reason": f"WAF detected ({', '.join(profile.waf)}) — Layer 7 with UA rotation may evade",
+            "reason": f"WAF: {', '.join(profile.waf)} — rotate UA",
             "priority": "high",
             "config": {"port": profile.port, "rate": 500, "method": "GET"},
         })
@@ -272,12 +272,12 @@ def _generate_suggestions(profile: TargetProfile) -> None:
         for s in suggestions:
             if s["attack"] == "slowloris":
                 s["priority"] = "high"
-                s["reason"] += " (thread-based server — Slowloris is highly effective)"
+                s["reason"] += " (threaded)"
 
     if profile.server and "cloudflare" in profile.server.lower():
         suggestions.append({
             "attack": "http_flood",
-            "reason": "Cloudflare detected — high concurrency + random UA to bypass",
+            "reason": "Cloudflare — high conn + random UA",
             "priority": "high",
             "config": {"port": profile.port, "rate": 2000, "method": "GET"},
         })

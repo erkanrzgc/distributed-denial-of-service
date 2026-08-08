@@ -215,10 +215,10 @@ class AttackWizardScreen(Screen):
 
     def _show_profile(self, p) -> None:
         lines = []
-        lines.append(f"[green]{p.ip or '?'}[/] | HTTP {p.status_code or '?'} | {p.response_time*1000:.0f}ms")
+        lines.append(f"[green]{p.ip}[/]  HTTP {p.status_code}  {p.response_time*1000:.0f}ms")
 
         if p.server:
-            lines.append(f"[dim]{p.server}[/] | TLS {p.tls_version or '?'}")
+            lines.append(f"[dim]{p.server}[/]  TLS {p.tls_version or '?'}")
         if p.waf:
             lines.append(f"[yellow]WAF: {', '.join(p.waf)}[/]")
         if p.open_ports:
@@ -228,9 +228,10 @@ class AttackWizardScreen(Screen):
 
         if p.suggested_attacks:
             lines.append("")
+            lines.append("[bold]try these:[/]")
             for s in p.suggested_attacks[:3]:
                 icon = ">" if s["priority"] == "high" else "-"
-                lines.append(f"  [bold]{icon} {s['attack']}[/] {s['reason']}")
+                lines.append(f"  {icon} {s['attack']} — {s['reason']}")
 
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
