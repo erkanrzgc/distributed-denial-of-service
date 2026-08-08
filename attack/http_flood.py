@@ -1,12 +1,14 @@
 import asyncio
 import random
 import ssl
+import time
 from typing import Any, Optional
 
 import aiohttp
 import structlog
 
 from attack.base import BaseAttacker
+from utils.histogram import Histogram
 
 logger = structlog.get_logger(__name__)
 
@@ -59,6 +61,7 @@ class HTTPFloodAttack(BaseAttacker):
 
         session = aiohttp.ClientSession(connector=connector, timeout=timeout)
         sem = asyncio.Semaphore(concurrent)
+        latency_hist = Histogram()
 
         async def make_request(client: aiohttp.ClientSession) -> None:
             headers_dict = headers or {}
@@ -67,6 +70,7 @@ class HTTPFloodAttack(BaseAttacker):
             if "Accept" not in headers_dict:
                 headers_dict["Accept"] = "*/*"
 
+            t0 = time.monotonic()
             try:
                 if method.upper() == "GET":
                     resp = await client.get(url, headers=headers_dict, cookies=cookies or {})
@@ -78,6 +82,8 @@ class HTTPFloodAttack(BaseAttacker):
                     resp = await client.request(method.upper(), url, data=body, headers=headers_dict, cookies=cookies or {})
 
                 content = await resp.read()
+                elapsed_ms = (time.monotonic() - t0) * 1000
+                latency_hist.add(elapsed_ms)
                 self.session.stats.packets_sent += 1
                 self.session.stats.bytes_sent += len(content or b"")
                 self.session.stats.packets_received += 1
@@ -100,6 +106,8 @@ class HTTPFloodAttack(BaseAttacker):
                 async with sem:
                     await make_request(session)
                 await asyncio.sleep(delay)
+
+        self.session._latency_hist = latency_hist
 
         try:
             tasks = [asyncio.create_task(worker()) for _ in range(concurrent)]

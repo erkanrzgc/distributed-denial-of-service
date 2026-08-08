@@ -143,6 +143,11 @@ class Session:
             await asyncio.sleep(0.01)
 
     def to_dict(self) -> dict[str, Any]:
+        sent = self.stats.packets_sent
+        errs = self.stats.errors
+        sr = ((sent - errs) / sent * 100) if sent > 0 else 0.0
+        elapsed = self.duration
+        bw = (self.stats.bytes_sent * 8) / elapsed / 1_000_000 if elapsed > 0 else 0.0
         return {
             "session_id": self.session_id,
             "module": self.module,
@@ -150,10 +155,10 @@ class Session:
             "target": self.target,
             "status": self.status.value,
             "duration": self.duration,
-            "packets_sent": self.stats.packets_sent,
-            "errors": self.stats.errors,
-            "success_rate": self.stats.success_rate,
-            "bandwidth_mbps": self.stats.bandwidth_mbps,
+            "packets_sent": sent,
+            "errors": errs,
+            "success_rate": sr,
+            "bandwidth_mbps": bw,
             "error_message": self.error_message,
         }
 

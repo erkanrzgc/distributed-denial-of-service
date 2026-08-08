@@ -299,6 +299,10 @@ def _run_attack(cls, target: str, **kwargs):
     except KeyboardInterrupt:
         click.echo("\nAttack stopped.")
     reporter.print_result(session.to_dict(), title="Attack Report")
+    hist = getattr(session, "_latency_hist", None)
+    if hist and hist.count > 0:
+        s = hist.stats()
+        click.echo(f"\n  Latency (ms): p50={s['p50']}  p95={s['p95']}  p99={s['p99']}  mean={s['mean']}  min={s['min']}  max={s['max']}  samples={s['count']}")
 
 
 def _run_defense(cls, name: str, **kwargs):

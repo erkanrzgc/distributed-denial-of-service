@@ -98,6 +98,12 @@ class AttackLiveScreen(Screen):
                     yield Static("[dim]Bandwidth:[/]  0.00 Mbps", id="st-bw")
                     yield Static("[dim]Errors:[/]  0", id="st-errors")
                     yield Static("[dim]Duration:[/]  0s", id="st-duration")
+                    yield Static("")
+                    yield Static("[bold]LATENCY[/]")
+                    yield Static("[dim]P50:[/]  — ms", id="st-p50")
+                    yield Static("[dim]P95:[/]  — ms", id="st-p95")
+                    yield Static("[dim]P99:[/]  — ms", id="st-p99")
+                    yield Static("[dim]Mean:[/]  — ms", id="st-mean")
 
                 with Vertical(id="log-panel"):
                     yield Static("[bold]LOG[/]")
@@ -199,6 +205,13 @@ class AttackLiveScreen(Screen):
             self.query_one("#st-bw", Static).update(f"[dim]Bandwidth:[/]  {stats.bandwidth_mbps:.2f} Mbps")
             self.query_one("#st-errors", Static).update(f"[dim]Errors:[/]  [{e_class}]{stats.errors}[/]")
             self.query_one("#st-duration", Static).update(f"[dim]Duration:[/]  {session.duration:.1f}s")
+
+            hist = getattr(session, "_latency_hist", None)
+            if hist and hist.count > 0:
+                self.query_one("#st-p50", Static).update(f"[dim]P50:[/]  {hist.pct(50):.1f} ms")
+                self.query_one("#st-p95", Static).update(f"[dim]P95:[/]  {hist.pct(95):.1f} ms")
+                self.query_one("#st-p99", Static).update(f"[dim]P99:[/]  {hist.pct(99):.1f} ms")
+                self.query_one("#st-mean", Static).update(f"[dim]Mean:[/]  {hist.mean:.1f} ms")
         except Exception:
             pass
 
