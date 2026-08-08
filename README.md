@@ -6,7 +6,7 @@
 [![TUI](https://img.shields.io/badge/TUI-Textual-purple?logo=textual)](https://textual.textualize.io/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20osx-lightgrey)]()
 
-**Attack · Defense · Stress · Detect — Red & Blue Team Toolkit**
+**Distributed denial-of-service toolkit for red team operations, stress testing, and defensive security research.**
 
 > **Warning**: This tool is for **educational purposes and authorized testing only**. Unauthorized use is illegal. Read the [disclaimer](DISCLAIMER.md).
 
