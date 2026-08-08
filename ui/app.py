@@ -59,5 +59,8 @@ class DDoSToolkitApp(App):
 
 
 def run_tui() -> None:
-    app = DDoSToolkitApp()
-    app.run()
+    try:
+        app = DDoSToolkitApp()
+        app.run()
+    except KeyboardInterrupt:
+        pass

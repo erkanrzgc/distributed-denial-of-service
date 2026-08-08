@@ -59,7 +59,7 @@ class AttackWizardScreen(Screen):
         ]
 
         with Container(id="wizard-container"):
-            yield Static("  target & scan", id="")
+            yield Static("  target & scan")
             with Horizontal(classes="form-row"):
                 yield Label("target", classes="form-label")
                 yield Input(placeholder="example.com", id="target", classes="form-input")
@@ -70,7 +70,7 @@ class AttackWizardScreen(Screen):
 
             yield Static(id="scan-panel")
 
-            yield Static("  configure", id="")
+            yield Static("  configure")
             with Horizontal(classes="form-row"):
                 yield Label("type", classes="form-label")
                 yield Select(attack_options, value="http_flood", id="attack_type", classes="form-input")
