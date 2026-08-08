@@ -37,10 +37,8 @@ def validate_target(target: str) -> tuple[bool, Optional[str], Optional[str]]:
     try:
         socket.getaddrinfo(host, 80, socket.AF_INET, socket.SOCK_STREAM)
         return True, host, None
-    except socket.gaierror:
+    except (socket.gaierror, socket.herror, socket.timeout):
         return False, host, f"Cannot resolve {host} — check the address or your network"
-
-    return True, host, None
 
 
 def format_error(host: str, error: str) -> str:

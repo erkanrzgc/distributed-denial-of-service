@@ -13,7 +13,7 @@ COMMON_PORTS = [21, 22, 25, 53, 80, 110, 143, 443, 465, 587, 993, 995, 1433, 330
 TECH_SIGNATURES = {
     "Cloudflare": {"Server": "cloudflare", "cf-ray": None},
     "nginx": {"Server": "nginx"},
-    "Apache": {"Server": "apache", "Server": "Apache/"},
+    "Apache": {"Server": "Apache/"},
     "AWS CloudFront": {"Server": "CloudFront", "x-amz-cf-id": None},
     "Varnish": {"Server": "varnish", "X-Varnish": None},
     "IIS": {"Server": "Microsoft-IIS"},

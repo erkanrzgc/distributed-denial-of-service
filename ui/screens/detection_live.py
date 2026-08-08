@@ -130,10 +130,10 @@ class DetectionLiveScreen(Screen):
         stats = session.stats
 
         self.stats_packets = f"{stats.packets_sent:,}"
-        self.stats_rate = f"{stats.packets_sent:,}/s"
+        self.stats_rate = f"{stats.packets_sent:,}"
         self.stats_anomalies = f"{getattr(stats, 'rate_hits', 0):,}"
-        self.stats_connections = f"{getattr(stats, 'passed_count', 0):,}"
-        self.stats_unique = f"{getattr(stats, 'blocked_count', 0):,}"
+        self.stats_connections = f"{getattr(stats, 'errors', 0):,}"
+        self.stats_unique = f"0"
         self.stats_duration = f"{session.duration:.1f}s"
 
         try:

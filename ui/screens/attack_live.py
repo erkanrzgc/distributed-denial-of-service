@@ -231,7 +231,9 @@ class AttackLiveScreen(Screen):
         elif session.status == SessionStatus.FAILED:
             self._add_log(f"Attack failed: {session.error_message}", style="red")
 
-        if stats.packets_sent % 100 == 0 and stats.packets_sent > 0:
+        last_logged = getattr(self, "_last_log_sent", -1000)
+        if stats.packets_sent > 0 and stats.packets_sent - last_logged >= 100:
+            self._last_log_sent = stats.packets_sent
             self._add_log(f"Sent: {stats.packets_sent:,} | Rate: {rate:,}/s | Err: {stats.errors} | {success:.0f}%")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

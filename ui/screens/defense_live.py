@@ -108,7 +108,7 @@ class DefenseLiveScreen(Screen):
     def on_unmount(self) -> None:
         if self._stat_timer:
             self._stat_timer.stop()
-        if self._log_file:
+        if self._log_file and hasattr(self, "_session"):
             write_session_summary(self._log_file, self._session.to_dict())
 
     def _start_defense(self) -> None:

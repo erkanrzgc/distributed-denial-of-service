@@ -42,8 +42,6 @@ class ReportsScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_back":
             self.app.pop_screen()
-        elif event.button.id == "btn_export":
-            self.app.push_screen("reports")
 
     def action_back(self) -> None:
         self.app.pop_screen()

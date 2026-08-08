@@ -55,7 +55,7 @@ class MainMenuScreen(Screen):
             Static("[dim]Attack · Defense · Stress · Detect[/]", id="subtitle"),
             Button(" Attack (A)", id="btn_attack", variant="error", classes="menu-btn"),
             Button(" Defense (D)", id="btn_defense", variant="success", classes="menu-btn"),
-            Button(" Stress Test (E)", id="btn_stress", variant="warning", classes="menu-btn"),
+            Button(" Stress (E)", id="btn_stress", variant="warning", classes="menu-btn"),
             Button(" Detection (T)", id="btn_detection", variant="primary", classes="menu-btn"),
             Static(),
             Button(" Reports (R)", id="btn_reports", classes="menu-btn"),

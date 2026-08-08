@@ -120,7 +120,7 @@ class PacketCrafter:
 def _random_ip() -> str:
     while True:
         ip = f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
-        if not ip.startswith("127.") and not ip.startswith("10.") and not ip.startswith("172.") and not ip.startswith("192.168."):
+        if not ip.startswith("127.") and not ip.startswith("10.") and not ip.startswith("172.16.") and not ip.startswith("192.168."):
             return ip
 
 

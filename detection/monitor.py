@@ -66,7 +66,10 @@ class TrafficMonitor(BaseDetector):
                 await self.session._pause_event.wait()
                 self._calculate_rates()
                 self._check_alerts()
-                self.session.update_stats(**self._stats)
+                self.session.update_stats(
+                    packets_sent=self._stats["total_packets"],
+                    bytes_sent=self._stats["total_bytes"],
+                )
                 await asyncio.sleep(0.25)
         finally:
             if has_scapy:

