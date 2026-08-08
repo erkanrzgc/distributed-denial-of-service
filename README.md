@@ -16,7 +16,7 @@
 git clone https://github.com/erkanrzgc/distributed-denial-of-service.git
 cd distributed-denial-of-service
 pip install -r requirements.txt
-python3 main.py
+python3 ddos.py
 ```
 
 ### CLI Mode
@@ -57,8 +57,7 @@ python3 ddos.py recon --target example.com
 ├── utils/           🔧  Network, packet crafting, crypto, IP utilities
 ├── tests/           🧪  40 unit/integration tests
 ├── config/          ⚙️  Default YAML configuration
-├── cli.py           ⌨️  Click-based CLI
-└── main.py          ▶️  Entry point
+├── ddos.py           ▶️  Entry point (TUI + CLI)
 ```
 
 ## Modules
