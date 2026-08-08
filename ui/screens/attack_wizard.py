@@ -121,8 +121,8 @@ class AttackWizardScreen(Screen):
 
             Static()
             with Horizontal():
-                yield Button(" Launch Attack ", id="btn_start", variant="error")
-                yield Button(" Go Back ", id="btn_back", variant="default")
+                yield Button("Launch Attack", id="btn_start", variant="error")
+                yield Button("Back", id="btn_back", variant="default")
 
         yield Footer()
 
@@ -231,7 +231,18 @@ class AttackWizardScreen(Screen):
             lines.append("[bold]try these:[/]")
             for s in p.suggested_attacks[:3]:
                 icon = ">" if s["priority"] == "high" else "-"
+                cfg = s.get("config", {})
+                cfg_strs = []
+                if "port" in cfg: cfg_strs.append(f"port={cfg['port']}")
+                if "rate" in cfg: cfg_strs.append(f"rate={cfg['rate']}")
+                if "connections" in cfg: cfg_strs.append(f"conn={cfg['connections']}")
+                if "concurrent" in cfg: cfg_strs.append(f"concurrent={cfg['concurrent']}")
+                if "method" in cfg: cfg_strs.append(str(cfg['method']))
+                if "spoof" in cfg and cfg["spoof"]: cfg_strs.append("spoof")
+                cfg_line = "  ".join(cfg_strs)
                 lines.append(f"  {icon} {s['attack']} — {s['reason']}")
+                if cfg_line:
+                    lines.append(f"    [dim]{cfg_line}[/]")
 
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
