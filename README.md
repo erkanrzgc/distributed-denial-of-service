@@ -6,7 +6,7 @@
 [![TUI](https://img.shields.io/badge/TUI-Textual-purple?logo=textual)](https://textual.textualize.io/)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20osx-lightgrey)]()
 
-**Distributed denial-of-service toolkit for red team operations, stress testing, and defensive security research.**
+**DDoS toolkit for red team operations, stress testing, and defensive security research.**
 
 > **Warning**: This tool is for **educational purposes and authorized testing only**. Unauthorized use is illegal. Read the [disclaimer](DISCLAIMER.md).
 
@@ -22,26 +22,31 @@ python3 ddos.py
 ### CLI Mode
 
 ```bash
-# Attack — 2 second HTTP flood at 1000 req/s
-python3 ddos.py --no-tui attack http-flood --target http://test.local --rate 1000 --duration 2
+# Recon — scan target, detect tech stack & suggest attacks
+python3 ddos.py recon --target example.com
+
+# Attack — 3s HTTP flood at 1000 req/s
+python3 ddos.py --no-tui attack http-flood --target https://test.local --rate 1000 --duration 3s
+
+# Stress test — 30s ramp-up with latency percentiles
+python3 ddos.py --no-tui stress http --target https://api.com --duration 30s --ramp-up 10:100:15s
 
 # Defense — reverse proxy with built-in WAF
 python3 ddos.py --no-tui defend proxy --listen :8080 --backend http://app:3000
 
 # Detection — live traffic monitor
 python3 ddos.py --no-tui detect monitor --interface eth0
-
-# Recon — scan target, detect tech & suggest attacks
-python3 ddos.py recon --target example.com
 ```
 
 ## Features
 
-- **TUI Dashboard** — Full terminal interface with mouse support, live stats, 4 themes (dark, light, neon, matrix)
+- **TUI Dashboard** — Full terminal interface with mouse + keyboard navigation, live stats, 4 themes (dark, light, neon, matrix)
 - **8 Attack Vectors** — HTTP flood, SYN flood, UDP flood, Slowloris, Slow Read, Layer 7 simulation, ICMP flood, DNS/NTP amplification
 - **7 Defense Modules** — Async reverse proxy with embedded WAF, sliding-window rate limiter, iptables/nftables firewall, proof-of-work challenge-response, burst-detection traffic shaper, multi-pattern WAF scanner, PII/entropy data guard
 - **5 Detection Modules** — Real-time packet capture, baseline anomaly detection, Shannon entropy analysis, attack fingerprint tracking, webhook/email/Slack alert dispatch
+- **Stress Testing** — Latency percentiles (p50/p95/p99), ramp-up mode, HTTP status code breakdown, error classification, request-count termination
 - **Data Leak Protection** — Real-time PII regex scanning, entropy-based encrypted/exfiltrated data detection, SQLi/XSS/path-traversal/command-injection pattern matching
+- **Per-Target Logging** — Every attack, defense, and detection session auto-generates a timestamped log under `logs/{target}/`
 - **Modular Plugin System** — Add new attack, defense, or detection modules as single files; auto-registered via `__init_subclass__`
 - **CLI + TUI Dual Mode** — Run interactively in the terminal UI or script from the command line
 
@@ -54,10 +59,11 @@ python3 ddos.py recon --target example.com
 ├── detection/       🔍  5 detection modules
 ├── core/            🧠  Config, session manager, event bus, engine
 ├── ui/              🖥️  Textual TUI (screens, widgets, 4 themes)
-├── utils/           🔧  Network, packet crafting, crypto, IP utilities
+├── utils/           🔧  Network, packets, crypto, IP utils, histogram, profiler, validators, log writer
 ├── tests/           🧪  40 unit/integration tests
 ├── config/          ⚙️  Default YAML configuration
-├── ddos.py           ▶️  Entry point (TUI + CLI)
+├── ddos.py          ▶️  Entry point (TUI + CLI)
+└── logs/            📝  Auto-generated per-target session logs
 ```
 
 ## Modules
@@ -65,7 +71,7 @@ python3 ddos.py recon --target example.com
 ### Attack
 | Module | Type | Description |
 |--------|------|-------------|
-| `http-flood` | Layer 7 | Concurrent HTTP flood with configurable method, body, headers |
+| `http-flood` | Layer 7 | HTTP/HTTPS load & stress test with latency, ramp-up, status tracking |
 | `syn-flood` | Layer 4 | TCP SYN flood via raw sockets with IP spoofing |
 | `udp-flood` | Layer 4 | UDP packet flood with configurable payload |
 | `slowloris` | Layer 7 | Partial HTTP header attack exhausting connection pool |
@@ -94,25 +100,43 @@ python3 ddos.py recon --target example.com
 | `fingerprint` | Attack pattern fingerprinting, grouping, and known-signature matching |
 | `alert` | Multi-channel alert dispatch (webhook, email, Slack) |
 
+## Stress Testing
+
+The `http-flood` module doubles as a performance load tester with latency tracking.
+
+```bash
+# 30-second stress test with live latency percentiles
+python3 ddos.py stress http --target https://api.com --duration 30s --concurrent 50
+
+# Stop after 10,000 requests
+python3 ddos.py stress http --target https://api.com --duration 0 --requests 10000
+
+# Ramp-up from 10 to 100 workers over 15 seconds
+python3 ddos.py stress http --target https://api.com --duration 60s --ramp-up 10:100:15s
+```
+
+Each test reports: **p50/p95/p99 latency**, **HTTP status code breakdown**, **error type classification**, and **bandwidth usage**.
+
 ## CLI Commands
 
 ```bash
 $ python3 ddos.py attack --help
-
 Commands: http-flood, syn-flood, udp-flood, slowloris, slow-read,
           layer7, icmp-flood, amplification
 
-$ python3 ddos.py defend --help
+$ python3 ddos.py stress --help
+Commands: http
 
+$ python3 ddos.py defend --help
 Commands: proxy, rate-limit, data-guard
 
 $ python3 ddos.py detect --help
+Commands: monitor, anomaly, entropy, fingerprint, alert
 
-Commands: monitor, anomaly, entropy
-
-$ python3 ddos.py config --help    # read/write config
-$ python3 ddos.py report --help    # session reports (json/html/terminal)
-$ python3 ddos.py recon --help     # target scanning & profiling
+$ python3 ddos.py recon --target example.com    # scan & profile target
+$ python3 ddos.py config                        # view/edit config
+$ python3 ddos.py report                        # session reports (json/html/csv)
+$ python3 ddos.py interfaces                    # list network interfaces
 ```
 
 ## Configuration

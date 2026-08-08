@@ -17,7 +17,7 @@ from core.config import get_config
 
 class DDoSToolkitApp(App):
     TITLE = "DDoS Toolkit"
-    SUB_TITLE = "Attack · Defense · Stress · Detect | Red & Blue Team"
+    SUB_TITLE = "Attack \u2022 Defense \u2022 Stress \u2022 Detect"
     CSS = """
     Screen {
         background: $surface;
