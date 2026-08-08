@@ -139,6 +139,28 @@ def dataguard_cmd(max_body: int, entropy: float) -> None:
 
 
 @cli.group()
+def stress() -> None:
+    pass
+
+
+@stress.command("http")
+@click.option("--target", "-t", required=True, help="Target URL")
+@click.option("--concurrent", "-c", default=50, type=int, help="Concurrent connections")
+@click.option("--duration", "-d", default="30s", help="Duration: 30s, 5m, 1h")
+@click.option("--requests", "-n", default=0, type=int, help="Stop after N requests")
+@click.option("--ramp-up", default="", help="Ramp: start:end:duration (10:100:30s)")
+@click.option("--rate", "-r", default=100, type=int, help="Requests per second")
+@click.option("--method", "-m", default="GET", type=click.Choice(["GET", "POST", "PUT", "PATCH", "DELETE"]))
+def stress_http(target: str, concurrent: int, duration: str, requests: int, ramp_up: str, rate: int, method: str) -> None:
+    from attack.http_flood import HTTPFloodAttack
+    dur = parse_duration(duration)
+    ramp = parse_ramp(ramp_up)
+    _run_attack(HTTPFloodAttack, target, rate=rate, concurrent=concurrent,
+                method=method, duration=dur, max_requests=requests,
+                ramp_start=ramp[0], ramp_end=ramp[1], ramp_duration=ramp[2])
+
+
+@cli.group()
 def detect() -> None:
     pass
 

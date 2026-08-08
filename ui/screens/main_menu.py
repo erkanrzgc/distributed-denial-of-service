@@ -38,6 +38,7 @@ class MainMenuScreen(Screen):
     BINDINGS = [
         ("a", "go_attack", "Attack"),
         ("d", "go_defense", "Defense"),
+        ("e", "go_stress", "Stress"),
         ("t", "go_detection", "Detection"),
         ("r", "go_reports", "Reports"),
         ("s", "go_settings", "Settings"),
@@ -51,9 +52,10 @@ class MainMenuScreen(Screen):
         yield Header(show_clock=True)
         yield Container(
             Static("[bold white on #1f6feb] DDOS TOOLKIT v1.0 [/]", id="title"),
-            Static("[dim]Attack | Defense | Detect — All in one terminal[/]", id="subtitle"),
+            Static("[dim]Attack | Defense | Stress | Detect[/]", id="subtitle"),
             Button(" Attack (A)", id="btn_attack", variant="error", classes="menu-btn"),
             Button(" Defense (D)", id="btn_defense", variant="success", classes="menu-btn"),
+            Button(" Stress Test (E)", id="btn_stress", variant="warning", classes="menu-btn"),
             Button(" Detection (T)", id="btn_detection", variant="primary", classes="menu-btn"),
             Static(),
             Button(" Reports (R)", id="btn_reports", classes="menu-btn"),
@@ -109,6 +111,8 @@ class MainMenuScreen(Screen):
             self.app.action_show_attack_menu()
         elif btn_id == "btn_defense":
             self.app.action_show_defense_menu()
+        elif btn_id == "btn_stress":
+            self.app.action_show_attack_wizard("http_flood")
         elif btn_id == "btn_detection":
             self.app.action_show_detection_menu()
         elif btn_id == "btn_reports":
@@ -123,6 +127,9 @@ class MainMenuScreen(Screen):
 
     def action_go_defense(self) -> None:
         self.app.action_show_defense_menu()
+
+    def action_go_stress(self) -> None:
+        self.app.action_show_attack_wizard("http_flood")
 
     def action_go_detection(self) -> None:
         self.app.action_show_detection_menu()
