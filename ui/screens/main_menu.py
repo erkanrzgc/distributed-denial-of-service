@@ -52,7 +52,7 @@ class MainMenuScreen(Screen):
         yield Header(show_clock=True)
         yield Container(
             Static("[bold white on #1f6feb] DDOS TOOLKIT v1.0 [/]", id="title"),
-            Static("[dim]Attack | Defense | Stress | Detect[/]", id="subtitle"),
+            Static("[dim]Attack · Defense · Stress · Detect | Red & Blue Team[/]", id="subtitle"),
             Button(" Attack (A)", id="btn_attack", variant="error", classes="menu-btn"),
             Button(" Defense (D)", id="btn_defense", variant="success", classes="menu-btn"),
             Button(" Stress Test (E)", id="btn_stress", variant="warning", classes="menu-btn"),
