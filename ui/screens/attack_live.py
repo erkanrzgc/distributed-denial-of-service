@@ -1,6 +1,5 @@
 import asyncio
 import time
-from datetime import datetime
 from pathlib import Path
 
 from textual.app import ComposeResult
@@ -11,8 +10,7 @@ from textual.widgets import Button, Footer, Header, Label, Static
 
 from core.engine import session_manager, registry
 from core.session import SessionStatus
-
-LOG_DIR = Path("logs")
+from utils.log_writer import create_log, append_log, write_session_summary
 
 
 class AttackLiveScreen(Screen):
@@ -159,16 +157,8 @@ class AttackLiveScreen(Screen):
 
     def _setup_log_file(self) -> None:
         target = self.config.get("target", "unknown")
-        import urllib.parse
-        parsed = urllib.parse.urlparse(target) if "://" in target else type("P", (), {"hostname": target})()
-        host = getattr(parsed, "hostname", None) or target
-        clean = host.replace("/", "_").replace("\\", "_").replace(":", "_")[:64]
-        folder = LOG_DIR / clean
-        folder.mkdir(parents=True, exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         atype = self.config.get("attack_type", "attack")
-        self._log_file = folder / f"{atype}_{ts}.log"
-        self._log_file.write_text(f"# {atype}\n# {target}\n# {datetime.now().isoformat()}\n\n")
+        self._log_file = create_log(target, "attack", atype)
 
     def _add_log(self, msg: str, style: str = "") -> None:
         timestamp = time.strftime("%H:%M:%S")
@@ -183,11 +173,7 @@ class AttackLiveScreen(Screen):
         except Exception:
             pass
         if self._log_file:
-            try:
-                with open(self._log_file, "a") as f:
-                    f.write(f"[{timestamp}] {msg}\n")
-            except Exception:
-                pass
+            append_log(self._log_file, msg)
 
     def _update_stats(self) -> None:
         session = getattr(self, "_session", None)
@@ -237,6 +223,8 @@ class AttackLiveScreen(Screen):
 
         if session.status == SessionStatus.COMPLETED:
             self._add_log("Attack completed", style="green")
+            if self._log_file:
+                write_session_summary(self._log_file, session.to_dict())
         elif session.status == SessionStatus.FAILED:
             self._add_log(f"Attack failed: {session.error_message}", style="red")
 

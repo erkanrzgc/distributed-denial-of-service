@@ -7,6 +7,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, Static
 
 from core.engine import session_manager, registry
+from utils.log_writer import create_log, append_log, write_session_summary
 
 
 class DetectionLiveScreen(Screen):
@@ -54,7 +55,8 @@ class DetectionLiveScreen(Screen):
     def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         self.config = config
-        self.    _stat_timer = None
+        self._stat_timer = None
+        self._log_file = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -93,12 +95,16 @@ class DetectionLiveScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.    _stat_timer = self.set_interval(0.5, self._update_stats)
+        self._stat_timer = self.set_interval(0.5, self._update_stats)
         self._start_detection()
+        self._log_file = create_log("monitor", "detection",
+                                     self.config.get("detect_type", "detection"))
 
     def on_unmount(self) -> None:
-        if self.    _stat_timer:
-            self.    _stat_timer.stop()
+        if self._stat_timer:
+            self._stat_timer.stop()
+        if self._log_file and hasattr(self, "_session"):
+            write_session_summary(self._log_file, self._session.to_dict())
 
     def _start_detection(self) -> None:
         module_cls = registry.get_module(self.config["detect_type"], "detection")
@@ -139,6 +145,10 @@ class DetectionLiveScreen(Screen):
             self.query_one("#val-duration", Static).update(self.stats_duration)
         except Exception:
             pass
+
+        if self._log_file and stats.packets_sent % 100 == 0:
+            append_log(self._log_file,
+                        f"pkts={stats.packets_sent} anomalies={getattr(stats, 'rate_hits', 0)}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_stop":

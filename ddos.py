@@ -342,6 +342,11 @@ def _run_attack(cls, target: str, **kwargs):
     except KeyboardInterrupt:
         click.echo("\nAttack stopped.")
     reporter.print_result(session.to_dict(), title="Attack Report")
+
+    from utils.log_writer import create_log, write_session_summary
+    log_path = create_log(target, "attack", cls.name)
+    write_session_summary(log_path, session.to_dict())
+
     hist = getattr(session, "_latency_hist", None)
     if hist and hist.count > 0:
         s = hist.stats()
@@ -366,6 +371,9 @@ def _run_defense(cls, name: str, **kwargs):
     except KeyboardInterrupt:
         click.echo("\nDefense stopped.")
     reporter.print_defense_status(session.to_dict())
+    from utils.log_writer import create_log, write_session_summary
+    log_path = create_log("defense://localhost", "defense", name)
+    write_session_summary(log_path, session.to_dict())
 
 
 def _run_detection(cls, name: str, **kwargs):
@@ -376,6 +384,9 @@ def _run_detection(cls, name: str, **kwargs):
     except KeyboardInterrupt:
         click.echo("\nDetection stopped.")
     reporter.print_result(session.to_dict(), title="Detection Report")
+    from utils.log_writer import create_log, write_session_summary
+    log_path = create_log("detection://monitor", "detection", name)
+    write_session_summary(log_path, session.to_dict())
 
 
 if __name__ == "__main__":

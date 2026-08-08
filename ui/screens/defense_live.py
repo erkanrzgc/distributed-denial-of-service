@@ -8,6 +8,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, Static
 
 from core.engine import session_manager, registry
+from utils.log_writer import create_log, append_log, write_session_summary
+from core.session import SessionStatus
 
 
 class DefenseLiveScreen(Screen):
@@ -55,7 +57,8 @@ class DefenseLiveScreen(Screen):
     def __init__(self, config: dict, **kwargs):
         super().__init__(**kwargs)
         self.config = config
-        self.    _stat_timer = None
+        self._stat_timer = None
+        self._log_file = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -94,12 +97,19 @@ class DefenseLiveScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.    _stat_timer = self.set_interval(0.5, self._update_stats)
+        self._stat_timer = self.set_interval(0.5, self._update_stats)
         self._start_defense()
+        self._log_file = create_log(
+            self.config.get("defense_type", "defense") + "://localhost",
+            "defense",
+            self.config.get("defense_type", "defense")
+        )
 
     def on_unmount(self) -> None:
-        if self.    _stat_timer:
-            self.    _stat_timer.stop()
+        if self._stat_timer:
+            self._stat_timer.stop()
+        if self._log_file:
+            write_session_summary(self._log_file, self._session.to_dict())
 
     def _start_defense(self) -> None:
         module_cls = registry.get_module(self.config["defense_type"], "defense")
@@ -136,6 +146,7 @@ class DefenseLiveScreen(Screen):
         self.stats_waf = f"{getattr(stats, 'waf_triggers', 0):,}"
         self.stats_rate = f"{getattr(stats, 'rate_hits', 0):,}/s"
         self.stats_duration = f"{session.duration:.1f}s"
+        self._log_stats = (stats.packets_sent, getattr(stats, 'blocked_count', 0))
 
         try:
             self.query_one("#val-req", Static).update(self.stats_req)
@@ -146,6 +157,9 @@ class DefenseLiveScreen(Screen):
             self.query_one("#val-duration", Static).update(self.stats_duration)
         except Exception:
             pass
+
+        if self._log_file and stats.packets_sent % 50 == 0:
+            append_log(self._log_file, f"req={stats.packets_sent} blocked={getattr(stats, 'blocked_count', 0)} waf={getattr(stats, 'waf_triggers', 0)}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_stop":
