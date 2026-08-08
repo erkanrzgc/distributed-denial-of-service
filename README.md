@@ -148,10 +148,6 @@ python3 -m pytest tests/ -v
 # 40 passed
 ```
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a new module takes one file — inherit from `BaseAttacker`, `BaseDefender`, or `BaseDetector` and it auto-registers.
-
 ## Disclaimer
 
 This tool is for **educational and authorized testing only**. Unauthorized use against systems you do not own is illegal. See [DISCLAIMER.md](DISCLAIMER.md) for full legal references by country.
