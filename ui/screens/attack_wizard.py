@@ -14,38 +14,21 @@ LOG_DIR = Path("logs")
 
 class AttackWizardScreen(Screen):
     CSS = """
-    AttackWizardScreen {
-        align: center middle;
-    }
+    AttackWizardScreen { align: center middle; }
     #wizard-container {
-        width: 78;
-        height: auto;
-        border: solid $border;
-        background: $surface;
-        padding: 1 2;
+        width: 80; height: auto; border: solid $border;
+        background: $surface; padding: 1 2;
     }
-    .form-row {
-        height: 3;
-        margin: 1 0;
-    }
-    .form-label {
-        width: 15;
-        text-align: right;
-        padding: 0 1;
-    }
-    .form-input {
-        width: 45;
-    }
+    .form-row { height: 3; margin: 1 0; }
+    .form-label { width: 15; text-align: right; padding: 0 1; }
+    .form-input { width: 47; }
     #scan-panel {
-        height: auto;
-        border: solid green;
-        margin: 1 0;
-        padding: 1;
+        height: auto; border: solid green; margin: 1 0; padding: 1;
         background: $surface;
     }
-    Button:focus, Input:focus, Select:focus {
-        text-style: bold reverse;
-    }
+    #btn-row { height: 3; align-horizontal: center; }
+    .act-btn { width: 20; margin: 0 1; }
+    Button:focus, Input:focus, Select:focus { text-style: bold reverse; }
     """
 
     BINDINGS = [
@@ -65,64 +48,61 @@ class AttackWizardScreen(Screen):
         yield Header(show_clock=True)
 
         attack_options = [
-            ("HTTP Flood", "http_flood"),
-            ("SYN Flood", "syn_flood"),
-            ("UDP Flood", "udp_flood"),
-            ("Slowloris", "slowloris"),
-            ("Slow Read", "slow_read"),
-            ("Layer 7", "layer7"),
-            ("ICMP Flood", "icmp_flood"),
-            ("Amplification", "amplification"),
+            ("http_flood", "http_flood"),
+            ("syn_flood", "syn_flood"),
+            ("udp_flood", "udp_flood"),
+            ("slowloris", "slowloris"),
+            ("slow_read", "slow_read"),
+            ("layer7", "layer7"),
+            ("icmp_flood", "icmp_flood"),
+            ("amplification", "amplification"),
         ]
 
         with Container(id="wizard-container"):
-            yield Static("[bold red]ATTACK WIZARD[/]", id="wizard-title")
-
-            yield Static()
-            yield Static("  1. Enter target & scan")
+            yield Static("  target & scan", id="")
             with Horizontal(classes="form-row"):
-                yield Label("Target:", classes="form-label")
-                yield Input(placeholder="example.com or https://...", id="target", classes="form-input")
+                yield Label("target", classes="form-label")
+                yield Input(placeholder="example.com", id="target", classes="form-input")
 
             with Horizontal(classes="form-row"):
                 yield Label("", classes="form-label")
-                yield Button(" Scan Target (Ctrl+N) ", id="btn_scan", variant="primary")
+                yield Button("Scan (Ctrl+N)", id="btn_scan", variant="primary")
 
             yield Static(id="scan-panel")
 
-            yield Static("  2. Configure & launch")
+            yield Static("  configure", id="")
             with Horizontal(classes="form-row"):
-                yield Label("Attack Type:", classes="form-label")
+                yield Label("type", classes="form-label")
                 yield Select(attack_options, value="http_flood", id="attack_type", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Port:", classes="form-label")
+                yield Label("port", classes="form-label")
                 yield Input(placeholder="443", value="443", id="port", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Rate:", classes="form-label")
+                yield Label("rate", classes="form-label")
                 yield Input(placeholder="1000", value="1000", id="rate", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Concurrency:", classes="form-label")
+                yield Label("concurrency", classes="form-label")
                 yield Input(placeholder="100", value="100", id="concurrent", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Duration:", classes="form-label")
+                yield Label("duration", classes="form-label")
                 yield Input(placeholder="0 = unlimited", value="0", id="duration", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Method:", classes="form-label")
+                yield Label("method", classes="form-label")
                 yield Select([("GET", "GET"), ("POST", "POST"), ("HEAD", "HEAD")], value="GET", id="method", classes="form-input")
 
             with Horizontal(classes="form-row"):
-                yield Label("Spoof IP:", classes="form-label")
+                yield Label("spoof", classes="form-label")
                 yield Switch(value=False, id="spoof", classes="form-input")
 
             Static()
-            with Horizontal():
-                yield Button("Launch Attack", id="btn_start", variant="error")
-                yield Button("Back", id="btn_back", variant="default")
+            with Horizontal(id="btn-row"):
+                yield Button("Launch Attack", id="btn_start", variant="error", classes="act-btn")
+                yield Button("Back", id="btn_back", variant="default", classes="act-btn")
 
         yield Footer()
 
@@ -133,10 +113,7 @@ class AttackWizardScreen(Screen):
             pass
 
     def _get_focusables(self) -> list:
-        return [
-            w for w in self.query(".form-input, #btn_scan, #btn_start, #btn_back")
-            if hasattr(w, "focus")
-        ]
+        return [w for w in self.query(".form-input, #btn_scan, #btn_start, #btn_back") if hasattr(w, "focus")]
 
     def action_focus_next(self) -> None:
         widgets = self._get_focusables()
@@ -179,15 +156,13 @@ class AttackWizardScreen(Screen):
     def _run_scan(self) -> None:
         target = self.query_one("#target", Input).value.strip()
         if not target:
-            self.query_one("#scan-panel", Static).update("[red]Enter a target first[/]")
+            self.query_one("#scan-panel", Static).update("[red]enter a target[/]")
             return
-
         valid, host, error = validate_target(target)
         if not valid:
-            self.query_one("#scan-panel", Static).update(f"[red]Invalid target: {error}[/]")
+            self.query_one("#scan-panel", Static).update(f"[red]{error}[/]")
             return
-
-        self.query_one("#scan-panel", Static).update(f"[dim]Scanning {host}...[/]")
+        self.query_one("#scan-panel", Static).update(f"[dim]scanning {host}...[/]")
         asyncio.create_task(self._do_scan(target))
 
     async def _do_scan(self, target: str) -> None:
@@ -195,7 +170,6 @@ class AttackWizardScreen(Screen):
             profile = await scan_target(target, scan_ports=True)
             self._profile = profile
             self._show_profile(profile)
-
             if profile.port:
                 self.query_one("#port", Input).value = str(profile.port)
             if profile.suggested_attacks:
@@ -208,41 +182,31 @@ class AttackWizardScreen(Screen):
                         self.query_one("#rate", Input).value = str(v)
                     elif k == "concurrent":
                         self.query_one("#concurrent", Input).value = str(v)
+                    elif k == "connections":
+                        self.query_one("#concurrent", Input).value = str(v)
                     elif k == "method":
                         self.query_one("#method", Select).value = v
+                    elif k == "spoof" and v:
+                        self.query_one("#spoof", Switch).value = True
         except Exception as e:
-            self.query_one("#scan-panel", Static).update(f"[red]Scan error: {e}[/]")
+            self.query_one("#scan-panel", Static).update(f"[red]scan error: {e}[/]")
 
     def _show_profile(self, p) -> None:
         lines = []
-        lines.append(f"[green]{p.ip}[/]  HTTP {p.status_code}  {p.response_time*1000:.0f}ms")
+        status = f"[green]{p.status_code}[/]" if p.status_code and 200 <= p.status_code < 400 else f"[red]{p.status_code or '?'}[/]"
+        lines.append(f"{p.ip}  {status}  {p.response_time*1000:.0f}ms")
 
-        if p.server:
-            lines.append(f"[dim]{p.server}[/]  TLS {p.tls_version or '?'}")
-        if p.waf:
-            lines.append(f"[yellow]WAF: {', '.join(p.waf)}[/]")
-        if p.open_ports:
-            lines.append(f"[dim]ports: {', '.join(str(x) for x in p.open_ports)}[/]")
-        if p.rate_limited:
-            lines.append("[red]rate-limited[/]")
+        extras = []
+        if p.server: extras.append(p.server)
+        if p.tls_version: extras.append(p.tls_version)
+        if p.waf: extras.append(f"[yellow]WAF:{','.join(p.waf)}[/]")
+        if extras: lines.append("[dim]" + "  ".join(extras) + "[/]")
 
         if p.suggested_attacks:
             lines.append("")
-            lines.append("[bold]try these:[/]")
             for s in p.suggested_attacks[:3]:
-                icon = ">" if s["priority"] == "high" else "-"
-                cfg = s.get("config", {})
-                cfg_strs = []
-                if "port" in cfg: cfg_strs.append(f"port={cfg['port']}")
-                if "rate" in cfg: cfg_strs.append(f"rate={cfg['rate']}")
-                if "connections" in cfg: cfg_strs.append(f"conn={cfg['connections']}")
-                if "concurrent" in cfg: cfg_strs.append(f"concurrent={cfg['concurrent']}")
-                if "method" in cfg: cfg_strs.append(str(cfg['method']))
-                if "spoof" in cfg and cfg["spoof"]: cfg_strs.append("spoof")
-                cfg_line = "  ".join(cfg_strs)
-                lines.append(f"  {icon} {s['attack']} — {s['reason']}")
-                if cfg_line:
-                    lines.append(f"    [dim]{cfg_line}[/]")
+                icon = "[green]>[/]" if s["priority"] == "high" else "[dim]-[/]"
+                lines.append(f"  {icon} [bold]{s['attack']}[/] [dim]{s['reason']}[/]")
 
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
@@ -250,9 +214,8 @@ class AttackWizardScreen(Screen):
         raw_target = self.query_one("#target", Input).value.strip()
         valid, host, error = validate_target(raw_target)
         if not valid:
-            self.query_one("#scan-panel", Static).update(f"[red]Cannot start: {error}[/]")
+            self.query_one("#scan-panel", Static).update(f"[red]{error}[/]")
             return
-
         config = {
             "attack_type": self.query_one("#attack_type", Select).value,
             "target": raw_target,
