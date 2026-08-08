@@ -34,6 +34,8 @@ class SessionStats:
     challenges_sent: int = 0
     waf_triggers: int = 0
     start_time: float = 0.0
+    status_codes: dict[int, int] = field(default_factory=dict)
+    error_types: dict[str, int] = field(default_factory=dict)
 
     def reset(self) -> None:
         self.packets_sent = 0

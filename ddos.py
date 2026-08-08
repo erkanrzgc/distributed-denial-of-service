@@ -34,11 +34,17 @@ def attack() -> None:
 @click.option("--port", "-p", default=443, type=int)
 @click.option("--rate", "-r", default=1000, type=int, help="Requests per second")
 @click.option("--concurrent", "-c", default=100, type=int, help="Concurrent connections")
-@click.option("--method", "-m", default="GET", type=click.Choice(["GET", "POST", "HEAD"]))
-@click.option("--duration", "-d", default=0, type=int, help="Duration in seconds (0=unlimited)")
-def http_flood_cmd(target: str, port: int, rate: int, concurrent: int, method: str, duration: int) -> None:
+@click.option("--method", "-m", default="GET", type=click.Choice(["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE"]))
+@click.option("--duration", "-d", default="0", help="Duration: 30s, 5m, 1h, or seconds (0=unlimited)")
+@click.option("--requests", "-n", default=0, type=int, help="Stop after N requests")
+@click.option("--ramp-up", default="", help="Ramp-up: start:end:duration (e.g. 10:100:30s)")
+def http_flood_cmd(target: str, port: int, rate: int, concurrent: int, method: str, duration: str, requests: int, ramp_up: str) -> None:
     from attack.http_flood import HTTPFloodAttack
-    _run_attack(HTTPFloodAttack, target, port=port, rate=rate, concurrent=concurrent, method=method, duration=duration)
+    dur = parse_duration(duration)
+    ramp = parse_ramp(ramp_up)
+    _run_attack(HTTPFloodAttack, target, port=port, rate=rate, concurrent=concurrent,
+                method=method, duration=dur, max_requests=requests,
+                ramp_start=ramp[0], ramp_end=ramp[1], ramp_duration=ramp[2])
 
 
 @attack.command("syn-flood")
@@ -282,6 +288,43 @@ def _parse_value(v: str):
     return v
 
 
+def parse_duration(s: str) -> float:
+    if not s or s == "0":
+        return 0.0
+    s = s.strip().lower()
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    if s.endswith("ms"):
+        return float(s[:-2]) / 1000.0
+    if s.endswith("s"):
+        return float(s[:-1])
+    if s.endswith("m"):
+        return float(s[:-1]) * 60.0
+    if s.endswith("h"):
+        return float(s[:-1]) * 3600.0
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def parse_ramp(s: str) -> tuple[int, int, float]:
+    if not s:
+        return (0, 0, 0)
+    parts = s.split(":")
+    if len(parts) != 3:
+        return (0, 0, 0)
+    try:
+        start = int(parts[0])
+        end = int(parts[1])
+        duration = parse_duration(parts[2])
+        return (start, end, duration)
+    except (ValueError, IndexError):
+        return (0, 0, 0)
+
+
 def _run_attack(cls, target: str, **kwargs):
     duration = kwargs.pop("duration", 0)
     session = session_manager.create_session(module=cls.name, target=target, mode="attack")
@@ -303,6 +346,16 @@ def _run_attack(cls, target: str, **kwargs):
     if hist and hist.count > 0:
         s = hist.stats()
         click.echo(f"\n  Latency (ms): p50={s['p50']}  p95={s['p95']}  p99={s['p99']}  mean={s['mean']}  min={s['min']}  max={s['max']}  samples={s['count']}")
+    codes = getattr(session, "_status_codes", None)
+    if codes:
+        parts = []
+        for code in sorted(codes):
+            parts.append(f"HTTP {code}={codes[code]}")
+        click.echo(f"  Status: {', '.join(parts)}")
+    errs = getattr(session, "_error_types", None)
+    if errs:
+        parts = [f"{k}={v}" for k, v in sorted(errs.items())]
+        click.echo(f"  Errors: {', '.join(parts)}")
 
 
 def _run_defense(cls, name: str, **kwargs):

@@ -103,6 +103,23 @@ class Reporter:
         logger.info("report_exported_html", path=str(filepath))
         return str(filepath)
 
+    def export_csv(self, data: dict[str, Any], filename: Optional[str] = None) -> str:
+        import csv
+        import io
+        filename = filename or f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filepath = REPORT_DIR / filename
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["metric", "value"])
+        for key, val in data.items():
+            if isinstance(val, dict):
+                for k, v in val.items():
+                    writer.writerow([f"{key}.{k}", v])
+            else:
+                writer.writerow([key, val])
+        filepath.write_text(output.getvalue())
+        return str(filepath)
+
     def print_json(self, data: dict[str, Any]) -> None:
         formatted = json.dumps(data, indent=2, default=str)
         syntax = Syntax(formatted, "json", theme="monokai", line_numbers=True)

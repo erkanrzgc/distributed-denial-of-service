@@ -102,8 +102,13 @@ class AttackLiveScreen(Screen):
                     yield Static("[bold]LATENCY[/]")
                     yield Static("[dim]P50:[/]  — ms", id="st-p50")
                     yield Static("[dim]P95:[/]  — ms", id="st-p95")
-                    yield Static("[dim]P99:[/]  — ms", id="st-p99")
                     yield Static("[dim]Mean:[/]  — ms", id="st-mean")
+                    yield Static("")
+                    yield Static("[bold]STATUS CODES[/]")
+                    yield Static("[dim]Waiting for data...[/]", id="st-codes")
+                    yield Static("")
+                    yield Static("[bold]ERRORS[/]")
+                    yield Static("[dim]Error types will appear here[/]", id="st-errtypes")
 
                 with Vertical(id="log-panel"):
                     yield Static("[bold]LOG[/]")
@@ -210,8 +215,23 @@ class AttackLiveScreen(Screen):
             if hist and hist.count > 0:
                 self.query_one("#st-p50", Static).update(f"[dim]P50:[/]  {hist.pct(50):.1f} ms")
                 self.query_one("#st-p95", Static).update(f"[dim]P95:[/]  {hist.pct(95):.1f} ms")
-                self.query_one("#st-p99", Static).update(f"[dim]P99:[/]  {hist.pct(99):.1f} ms")
                 self.query_one("#st-mean", Static).update(f"[dim]Mean:[/]  {hist.mean:.1f} ms")
+
+            codes = getattr(session, "_status_codes", None)
+            if codes:
+                code_lines = []
+                for code in sorted(codes):
+                    count = codes[code]
+                    color = "[green]" if 200 <= code < 300 else "[yellow]" if 300 <= code < 400 else "[red]"
+                    code_lines.append(f"  {color}{code}[/]: {count}")
+                self.query_one("#st-codes", Static).update("\n".join(code_lines) if code_lines else "[dim]—[/]")
+
+            errs = getattr(session, "_error_types", None)
+            if errs:
+                err_lines = []
+                for etype, count in sorted(errs.items(), key=lambda x: -x[1])[:5]:
+                    err_lines.append(f"  [red]{etype}[/]: {count}")
+                self.query_one("#st-errtypes", Static).update("\n".join(err_lines) if err_lines else "[dim]None[/]")
         except Exception:
             pass
 
