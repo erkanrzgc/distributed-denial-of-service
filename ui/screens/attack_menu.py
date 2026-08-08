@@ -1,28 +1,20 @@
 from textual.app import ComposeResult
-from textual.containers import Container
+from textual.containers import Container, Horizontal
 from textual.screen import Screen
-from textual.widgets import Button, Footer, Header, Label, Select, Static
+from textual.widgets import Button, Footer, Header, Label, Static
 
 
 class AttackMenuScreen(Screen):
     CSS = """
-    AttackMenuScreen {
-        align: center middle;
-    }
+    AttackMenuScreen { align: center middle; }
     #menu-container {
-        width: 48;
-        height: auto;
-        border: solid red;
-        background: $surface;
-        padding: 1 2;
+        width: 52; height: auto; border: solid red;
+        background: $surface; padding: 1 2;
     }
-    .attack-btn {
-        width: 100%;
-        margin: 1 0;
-    }
-    Button:focus {
-        text-style: bold reverse;
-    }
+    .attack-btn { width: 100%; margin: 1 0; }
+    #btn-row { height: 3; align-horizontal: center; margin-top: 1; }
+    .act-btn { width: 12; margin: 0 1; }
+    Button:focus { text-style: bold reverse; }
     """
 
     BINDINGS = [
@@ -31,8 +23,8 @@ class AttackMenuScreen(Screen):
         ("2", "syn", "SYN"),
         ("3", "udp", "UDP"),
         ("4", "slowloris", "Slowloris"),
-        ("5", "slowread", "SR"),
-        ("6", "layer7", "L7"),
+        ("5", "slowread", "Slow Read"),
+        ("6", "layer7", "Layer 7"),
         ("7", "icmp", "ICMP"),
         ("8", "amp", "AMP"),
         ("up", "focus_prev", "Up"),
@@ -49,18 +41,19 @@ class AttackMenuScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Container(id="menu-container"):
-            yield Static("[bold red]ATTACK MODULES[/]")
+            yield Static("  attack type")
             yield Static()
-            yield Button(" 1 — HTTP Flood — HTTP/HTTPS request flood", id="btn_http", variant="error", classes="attack-btn")
-            yield Button(" 2 — SYN Flood — TCP SYN packet flood", id="btn_syn", variant="error", classes="attack-btn")
-            yield Button(" 3 — UDP Flood — UDP packet flood", id="btn_udp", variant="error", classes="attack-btn")
-            yield Button(" 4 — Slowloris — Connection exhaustion", id="btn_slowloris", variant="error", classes="attack-btn")
-            yield Button(" 5 — Slow Read — Response draining", id="btn_slowread", variant="error", classes="attack-btn")
-            yield Button(" 6 — Layer 7 — App-layer simulation", id="btn_layer7", variant="error", classes="attack-btn")
-            yield Button(" 7 — ICMP Flood — Ping flood", id="btn_icmp", variant="error", classes="attack-btn")
-            yield Button(" 8 — Amplification — DNS/NTP amp", id="btn_amp", variant="error", classes="attack-btn")
+            yield Button("HTTP Flood", id="btn_http", variant="error", classes="attack-btn")
+            yield Button("SYN Flood", id="btn_syn", variant="error", classes="attack-btn")
+            yield Button("UDP Flood", id="btn_udp", variant="error", classes="attack-btn")
+            yield Button("Slowloris", id="btn_slowloris", variant="error", classes="attack-btn")
+            yield Button("Slow Read", id="btn_slowread", variant="error", classes="attack-btn")
+            yield Button("Layer 7", id="btn_layer7", variant="error", classes="attack-btn")
+            yield Button("ICMP Flood", id="btn_icmp", variant="error", classes="attack-btn")
+            yield Button("Amplification", id="btn_amp", variant="error", classes="attack-btn")
             yield Static()
-            yield Button(" Back (Esc) ", id="btn_back", variant="default", classes="attack-btn")
+            with Horizontal(id="btn-row"):
+                yield Button("Back", id="btn_back", variant="default", classes="act-btn")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -78,8 +71,7 @@ class AttackMenuScreen(Screen):
             return
         for i, b in enumerate(btns):
             if b.has_focus:
-                next_btn = btns[(i + 1) % len(btns)]
-                next_btn.focus()
+                btns[(i + 1) % len(btns)].focus()
                 return
         btns[0].focus()
 
@@ -89,8 +81,7 @@ class AttackMenuScreen(Screen):
             return
         for i, b in enumerate(btns):
             if b.has_focus:
-                prev_btn = btns[(i - 1) % len(btns)]
-                prev_btn.focus()
+                btns[(i - 1) % len(btns)].focus()
                 return
         btns[-1].focus()
 
