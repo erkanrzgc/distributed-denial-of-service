@@ -121,8 +121,8 @@ class AttackWizardScreen(Screen):
 
             Static()
             with Horizontal():
-                yield Button(" START ATTACK (Ctrl+S) ", id="btn_start", variant="error")
-                yield Button(" Back (Esc) ", id="btn_back", variant="default")
+                yield Button(" Launch Attack ", id="btn_start", variant="error")
+                yield Button(" Go Back ", id="btn_back", variant="default")
 
         yield Footer()
 
@@ -214,30 +214,24 @@ class AttackWizardScreen(Screen):
             self.query_one("#scan-panel", Static).update(f"[red]Scan error: {e}[/]")
 
     def _show_profile(self, p) -> None:
-        lines = ["[bold green]Scan Results[/]"]
-        lines.append(f"  IP: {p.ip or '?'}  |  Status: {p.status_code or '?'}  |  Time: {p.response_time*1000:.0f}ms")
+        lines = []
+        lines.append(f"[green]{p.ip or '?'}[/] | HTTP {p.status_code or '?'} | {p.response_time*1000:.0f}ms")
+
         if p.server:
-            lines.append(f"  Server: {p.server}  |  TLS: {p.tls_version or '?'}")
-        if p.tech_stack:
-            lines.append(f"  Tech: {', '.join(p.tech_stack)}")
+            lines.append(f"[dim]{p.server}[/] | TLS {p.tls_version or '?'}")
         if p.waf:
-            lines.append(f"  [yellow]WAF: {', '.join(p.waf)}[/]")
-        else:
-            lines.append("  [green]WAF: None[/]")
+            lines.append(f"[yellow]WAF: {', '.join(p.waf)}[/]")
         if p.open_ports:
-            lines.append(f"  Open ports: {', '.join(str(x) for x in p.open_ports)}")
+            lines.append(f"[dim]ports: {', '.join(str(x) for x in p.open_ports)}[/]")
         if p.rate_limited:
-            lines.append("  [red]Server is rate-limiting[/]")
+            lines.append("[red]rate-limited[/]")
+
         if p.suggested_attacks:
-            lines.append("\n[bold yellow]Suggested (auto-selected):[/]")
-            for s in p.suggested_attacks[:4]:
-                color = "[green]" if s["priority"] == "high" else "[yellow]" if s["priority"] == "medium" else "[dim]"
-                cfg = s.get("config", {})
-                cfg_str = ", ".join(f"{k}={v}" for k, v in cfg.items())
-                lines.append(f"  {color}{s['attack']}[/] — {s['reason']}")
-                lines.append(f"    [dim]{cfg_str}[/]")
-        if p.errors:
-            lines.append(f"\n[dim]{'; '.join(p.errors[:2])}[/]")
+            lines.append("")
+            for s in p.suggested_attacks[:3]:
+                icon = ">" if s["priority"] == "high" else "-"
+                lines.append(f"  [bold]{icon} {s['attack']}[/] {s['reason']}")
+
         self.query_one("#scan-panel", Static).update("\n".join(lines))
 
     def _start_attack(self) -> None:
