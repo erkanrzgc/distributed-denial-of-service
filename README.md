@@ -1,16 +1,18 @@
-# distributed-denial-of-service
+<h1 align="center">distributed-denial-of-service</h1>
 
-[![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-40%2F40-brightgreen)](tests/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![TUI](https://img.shields.io/badge/TUI-Textual-purple?logo=textual)](https://textual.textualize.io/)
-[![Platform](https://img.shields.io/badge/platform-linux-lightgrey)]()
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/tests-40%2F40-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/TUI-Textual-purple?logo=textual" alt="TUI">
+  <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Platform">
+</p>
 
-**DDoS toolkit for red team operations, stress testing, and defensive security research.**
+<p align="center"><strong>DDoS toolkit for red team operations, stress testing, and defensive security research.</strong></p>
 
 > **Warning**: This tool is for **educational purposes and authorized testing only**. Unauthorized use is illegal. Read the [disclaimer](DISCLAIMER.md).
 
-## Quick Start
+<h2 align="center">Quick Start</h2>
 
 ```bash
 git clone https://github.com/erkanrzgc/distributed-denial-of-service.git
@@ -38,7 +40,7 @@ python3 ddos.py --no-tui defend proxy --listen :8080 --backend http://app:3000
 python3 ddos.py --no-tui detect monitor --interface eth0
 ```
 
-## Features
+<h2 align="center">Features</h2>
 
 - **TUI Dashboard** — Full terminal interface with mouse + keyboard navigation, live stats, 4 themes (dark, light, neon, matrix)
 - **8 Attack Vectors** — HTTP flood, SYN flood, UDP flood, Slowloris, Slow Read, Layer 7 simulation, ICMP flood, DNS/NTP amplification
@@ -50,7 +52,7 @@ python3 ddos.py --no-tui detect monitor --interface eth0
 - **Modular Plugin System** — Add new attack, defense, or detection modules as single files; auto-registered via `__init_subclass__`
 - **CLI + TUI Dual Mode** — Run interactively in the terminal UI or script from the command line
 
-## Architecture
+<h2 align="center">Architecture</h2>
 
 ```
 .
@@ -66,7 +68,7 @@ python3 ddos.py --no-tui detect monitor --interface eth0
 └── logs/            📝  Auto-generated per-target session logs
 ```
 
-## Modules
+<h2 align="center">Modules</h2>
 
 ### Attack
 | Module | Type | Description |
@@ -100,7 +102,7 @@ python3 ddos.py --no-tui detect monitor --interface eth0
 | `fingerprint` | Attack pattern fingerprinting, grouping, and known-signature matching |
 | `alert` | Multi-channel alert dispatch (webhook, email, Slack) |
 
-## Stress Testing
+<h2 align="center">Stress Testing</h2>
 
 The `http-flood` module doubles as a performance load tester with latency tracking.
 
@@ -117,7 +119,7 @@ python3 ddos.py stress http --target https://api.com --duration 60s --ramp-up 10
 
 Each test reports: **p50/p95/p99 latency**, **HTTP status code breakdown**, **error type classification**, and **bandwidth usage**.
 
-## CLI Commands
+<h2 align="center">CLI Commands</h2>
 
 ```bash
 $ python3 ddos.py attack --help
@@ -139,7 +141,7 @@ $ python3 ddos.py report                        # session reports (json/html/csv
 $ python3 ddos.py interfaces                    # list network interfaces
 ```
 
-## Configuration
+<h2 align="center">Configuration</h2>
 
 ```bash
 # View current config
@@ -154,7 +156,7 @@ python3 ddos.py config --set alert.slack_webhook=https://hooks.slack.com/...
 
 Or edit `~/.config/ddos-toolkit/config.yaml` directly.
 
-## Requirements
+<h2 align="center">Requirements</h2>
 
 | Component | Minimum |
 |-----------|---------|
@@ -163,7 +165,7 @@ Or edit `~/.config/ddos-toolkit/config.yaml` directly.
 | Root | Required only for SYN flood and firewall (optional) |
 | Dependencies | textual, rich, click, aiohttp, scapy, pydantic, structlog |
 
-## Testing
+<h2 align="center">Testing</h2>
 
 ```bash
 pip install pytest pytest-asyncio
@@ -171,14 +173,14 @@ python3 -m pytest tests/ -v
 # 40 passed
 ```
 
-## Disclaimer
+<h2 align="center">Disclaimer</h2>
 
 This tool is for **educational and authorized testing only**. Unauthorized use against systems you do not own is illegal. See [DISCLAIMER.md](DISCLAIMER.md) for full legal references by country.
 
-## Security
+<h2 align="center">Security</h2>
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md).
 
-## License
+<h2 align="center">License</h2>
 
-[MIT](LICENSE) © erkanrzgc
+<p align="center"><a href="LICENSE">MIT</a> © erkanrzgc</p>
