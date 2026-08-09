@@ -7,6 +7,7 @@ from typing import Any, Optional
 import structlog
 
 from detection.base import BaseDetector
+from core.events import EventType, event_bus
 
 logger = structlog.get_logger(__name__)
 
@@ -121,6 +122,9 @@ class AnomalyDetector(BaseDetector):
                 rate_hits=self._anomaly_count,
             )
             logger.warning("anomaly_detected", count=len(anomalies), metrics=[a["metric"] for a in anomalies])
+            event_bus.publish_sync(EventType.DETECT_ANOMALY, event="anomaly",
+                                    count=len(anomalies),
+                                    metrics=[a["metric"] for a in anomalies])
 
     def get_alerts(self, limit: int = 20) -> list[dict]:
         return list(self._alerts)[-limit:]

@@ -8,6 +8,8 @@ from aiohttp import web
 import structlog
 
 from defense.base import BaseDefender
+from defense.data_guard import DataGuard
+from core.events import EventType, event_bus
 
 logger = structlog.get_logger(__name__)
 
@@ -27,6 +29,7 @@ class ReverseProxy(BaseDefender):
         }
         self._rate_limiter_cache: dict[str, deque] = {}
         self._blocked_ips: set[str] = set()
+        self._data_guard = DataGuard(session=self.session, event_bus=None)
 
     async def run(
         self,
@@ -84,12 +87,14 @@ class ReverseProxy(BaseDefender):
 
         if client_ip in self._blocked_ips:
             self._stats["blocked"] += 1
+            event_bus.publish_sync(EventType.DEFENSE_ALERT, ip=client_ip, reason="blocked", event="ip_blocked")
             return web.Response(status=403, text="Access Denied")
 
         if not self._check_rate_limit(client_ip):
             self._stats["rate_hits"] += 1
             self._stats["blocked"] += 1
             self._blocked_ips.add(client_ip)
+            event_bus.publish_sync(EventType.DEFENSE_ALERT, ip=client_ip, reason="rate_limit", event="rate_limited")
             return web.Response(status=429, text="Rate Limited")
 
         waf_result = self._check_waf(request)
@@ -97,6 +102,7 @@ class ReverseProxy(BaseDefender):
             self._stats["waf_triggers"] += 1
             self._stats["blocked"] += 1
             logger.warning("waf_triggered", ip=client_ip, rule=waf_result)
+            event_bus.publish_sync(EventType.DEFENSE_ALERT, ip=client_ip, reason=waf_result, event="waf_trigger")
             return web.Response(status=403, text="Forbidden")
 
         self._stats["requests"] += 1
@@ -110,6 +116,23 @@ class ReverseProxy(BaseDefender):
 
         try:
             body = await request.read()
+            content_type = request.headers.get("Content-Type", "")
+            guard_result = self._data_guard.scan_body(body, content_type)
+            if not guard_result["allowed"]:
+                self._stats["blocked"] += 1
+                self._stats["waf_triggers"] += 1
+                findings = [f["type"] for f in guard_result.get("findings", [])]
+                logger.warning("data_guard_blocked", ip=client_ip, findings=findings)
+                event_bus.publish_sync(EventType.DEFENSE_ALERT, ip=client_ip,
+                                       reason="data_guard", event="data_leak_block",
+                                       findings=findings)
+                return web.Response(status=400, text="Request blocked by data guard")
+
+            if guard_result.get("findings"):
+                event_bus.publish_sync(EventType.DETECT_ALERT, ip=client_ip,
+                                       event="data_guard_finding",
+                                       findings=[f["type"] for f in guard_result["findings"]])
+
             async with self._backend_session.request(
                 request.method, target_url,
                 headers=headers, data=body,

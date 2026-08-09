@@ -1,12 +1,14 @@
 import asyncio
 import random
 import string
+import time
 from typing import Any, Optional
 
 import aiohttp
 import structlog
 
 from attack.base import BaseAttacker
+from utils.histogram import Histogram
 
 logger = structlog.get_logger(__name__)
 
@@ -66,11 +68,13 @@ class Layer7Attack(BaseAttacker):
 
         sem = asyncio.Semaphore(concurrent)
         delay = 1.0 / rate if rate > 0 else 0
+        latency_hist = Histogram()
 
         async def simulate_user() -> None:
             while not self.session.is_stopped:
                 await self.session._pause_event.wait()
                 async with sem:
+                    t0 = time.monotonic()
                     try:
                         route = random.choice(routes)
                         url = target.rstrip("/") + route
@@ -86,6 +90,8 @@ class Layer7Attack(BaseAttacker):
                             async with client.get(url, headers=headers) as resp:
                                 await resp.read()
 
+                        elapsed_ms = (time.monotonic() - t0) * 1000
+                        latency_hist.add(elapsed_ms)
                         self.session.stats.packets_sent += 1
                         self.session.stats.bytes_sent += 500
                     except Exception:
@@ -93,6 +99,7 @@ class Layer7Attack(BaseAttacker):
                     await asyncio.sleep(delay)
 
         tasks = [asyncio.create_task(simulate_user()) for _ in range(concurrent)]
+        self.session._latency_hist = latency_hist
 
         try:
             await self.session.wait_for_stop()
